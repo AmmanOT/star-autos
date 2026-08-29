@@ -4,10 +4,9 @@ Suzuki spare parts POS — **React (Vercel)** + **NestJS (Render)** + **PostgreS
 
 ## Staff login
 
-| Role | Email | Password |
-|------|--------|----------|
-| SA / Admin | `sa0999@autos.com` | `sajjad@123` |
-| Employee | `sa@employee.com` | `employee@1122` |
+| Role | Username | Password |
+|------|----------|----------|
+| SA / Admin | `sa` | `1234` |
 
 ## Architecture
 
