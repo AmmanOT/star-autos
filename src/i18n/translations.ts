@@ -151,7 +151,6 @@ export const translations = {
     usernamePlaceholder: 'username',
     usernameHint: 'Username: letters, numbers, @ . _ -',
     noEmployees: 'No employees yet. Add one to give them a login.',
-    noEmployees: 'No employees yet. Add one to give them a login.',
     employeeCreated: 'Employee created',
     employeeUpdated: 'Employee updated',
     employeeDeleted: 'Employee deleted',
