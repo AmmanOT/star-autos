@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Barlow", "Segoe UI", sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", sans-serif;
+  --font-urdu: "Noto Nastaliq Urdu", "Barlow", serif;
+
+  /* STAR AUTOS navy */
+  --color-brand-50: #eef2f7;
+  --color-brand-100: #d5dee9;
+  --color-brand-200: #aabccc;
+  --color-brand-300: #7a94ad;
+  --color-brand-400: #4d6d8c;
+  --color-brand-500: #1e3a5f;
+  --color-brand-600: #0a2342;
+  --color-brand-700: #081b33;
+  --color-brand-800: #061426;
+  --color-brand-900: #040d1a;
+
+  /* Accent crimson from logo */
+  --color-accent: #c8102e;
+  --color-accent-hover: #a50d25;
+
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f4f6f9;
+  --color-border: #e2e8f0;
+  --color-text: #0a2342;
+  --color-text-muted: #64748b;
+}
+
+.dark {
+  --color-surface: #0a121c;
+  --color-surface-elevated: #111b28;
+  --color-border: #243247;
+  --color-text: #f1f5f9;
+  --color-text-muted: #cbd5e1;
+}
+
+/* Navy brand text/icons are invisible on dark — remap text utilities only (keep bg-brand-* navy) */
+.dark .text-brand-500,
+.dark .text-brand-600,
+.dark .text-brand-700 {
+  color: #93b4d4;
+}
+.dark .text-amber-600 {
+  color: #fbbf24;
+}
+.dark .text-emerald-600 {
+  color: #34d399;
+}
+.dark .text-red-600 {
+  color: #f87171;
+}
+.dark .text-blue-600 {
+  color: #60a5fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+[dir="rtl"] body,
+[dir="rtl"] .font-urdu {
+  font-family: var(--font-urdu);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* On-screen + thermal receipt — high contrast, safe margins */
+.thermal-receipt {
+  font-family: "Courier New", Courier, monospace;
+  box-sizing: border-box;
+}
+.thermal-receipt .receipt-top-spacer {
+  height: 10mm; /* clear thermal head / cutter */
+}
+.thermal-receipt .receipt-bottom-spacer {
+  height: 8mm; /* paper feed before cut */
+}
+.thermal-receipt .receipt-rule {
+  border-top: 1px dashed #000;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    height: auto !important;
+    overflow: hidden !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .thermal-receipt,
+  .thermal-receipt * {
+    visibility: visible !important;
+  }
+
+  .thermal-receipt {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

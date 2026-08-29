@@ -1,0 +1,17 @@
+# Optional local Postgres only (app itself is NOT deployed via Docker).
+# Render free Postgres is preferred for production.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: starautos
+      POSTGRES_PASSWORD: starautos
+      POSTGRES_DB: star_autos
+    ports:
+      - "5433:5432"
+    volumes:
+      - star_autos_pg:/var/lib/postgresql/data
+
+volumes:
+  star_autos_pg:
