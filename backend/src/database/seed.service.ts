@@ -15,7 +15,7 @@ import { Permission, UserRole } from '../common/enums';
 
 const SA = {
   id: 'c0000001-0000-4000-8000-000000000001',
-  name: 'STAR AUTOS Admin',
+  name: 'Madina Traders Admin',
   username: 'sa',
     password: '1234',
   role: UserRole.ADMIN,
@@ -157,6 +157,7 @@ export class SeedService implements OnModuleInit {
 
     if (existing) {
       existing.role = SA.role;
+      existing.name = SA.name;
       if (SA.legacyUsernames.includes(existing.username as (typeof SA.legacyUsernames)[number])) {
         existing.username = SA.username;
       }

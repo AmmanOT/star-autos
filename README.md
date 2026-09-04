@@ -1,6 +1,6 @@
-# STAR AUTOS
+# Madina Traders
 
-Suzuki spare parts POS — **React (Vercel)** + **NestJS (Render)** + **PostgreSQL (Neon)**.
+Spare parts POS — **React (Vercel)** + **NestJS (Render)** + **PostgreSQL (Neon)**.
 
 ## Staff login
 

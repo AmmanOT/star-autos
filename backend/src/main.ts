@@ -27,9 +27,9 @@ async function bootstrap() {
   );
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('STAR AUTOS API')
+    .setTitle('Madina Traders API')
     .setDescription(
-      'Suzuki spare parts wholesale/retail POS API for STAR AUTOS',
+      'Spare parts wholesale/retail POS API for Madina Traders',
     )
     .setVersion('1.0')
     .addBearerAuth()
@@ -42,7 +42,7 @@ async function bootstrap() {
 
   const port = configService.get<number>('port') || 3000;
   await app.listen(port);
-  console.log(`STAR AUTOS API listening on http://localhost:${port}`);
+  console.log(`Madina Traders API listening on http://localhost:${port}`);
   console.log(`Swagger docs at http://localhost:${port}/api/docs`);
 }
 

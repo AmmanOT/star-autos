@@ -92,7 +92,7 @@ export function LoginPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-white/60 tracking-wide px-2">
-          STAR AUTOS · Suzuki Spare Parts · Wholesale &amp; Retail
+          Madina Traders · Auto Spare Parts
         </p>
       </div>
     </div>

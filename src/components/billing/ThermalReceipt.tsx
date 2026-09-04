@@ -27,7 +27,7 @@ export function ThermalReceipt({ bill }: ThermalReceiptProps) {
           {t('shopInfo')}
         </p>
         <p className="text-[10px] mt-1 tracking-wide">
-          Suzuki Spare Parts · Wholesale &amp; Retail
+          Auto Spare Parts
         </p>
         <p className="text-[10px] mt-2 leading-snug">{t('shopAddress')}</p>
         <p className="text-[11px] font-bold mt-1">{t('shopPhone')}</p>
@@ -129,7 +129,7 @@ export function ThermalReceipt({ bill }: ThermalReceiptProps) {
         <p className="text-[9px] font-bold tracking-[0.08em] uppercase">
           Software by AS CodeWorks
         </p>
-        <p className="text-[8px] mt-0.5">© Provided for STAR AUTOS</p>
+        <p className="text-[8px] mt-0.5">© Provided for Madina Traders</p>
         <p className="text-[8px]">Contact: 0325-9055292</p>
       </div>
 

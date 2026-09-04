@@ -2,7 +2,7 @@
   "name": "star-autos",
   "private": true,
   "version": "1.0.0",
-  "description": "STAR AUTOS — Suzuki Spare Parts Wholesale & Retail",
+  "description": "Madina Traders — Spare Parts Wholesale & Retail",
   "type": "module",
   "scripts": {
     "dev": "vite",
