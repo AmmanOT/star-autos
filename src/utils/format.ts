@@ -2,19 +2,24 @@ export function formatPKR(amount: number): string {
   return `Rs. ${amount.toLocaleString('en-PK')}`;
 }
 
+const PK_TZ = 'Asia/Karachi';
+
 export function formatDate(dateStr: string, lang: 'en' | 'ur' = 'en'): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString(lang === 'ur' ? 'ur-PK' : 'en-PK', {
+  return d.toLocaleString(lang === 'ur' ? 'ur-PK' : 'en-PK', {
+    timeZone: PK_TZ,
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
+    hour12: true,
   });
 }
 
 export function formatDateShort(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-PK', {
+    timeZone: PK_TZ,
     day: 'numeric',
     month: 'short',
     year: 'numeric',

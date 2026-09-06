@@ -27,7 +27,7 @@ export function ThermalReceipt({ bill }: ThermalReceiptProps) {
       {/* Safe top margin for thermal head / auto-cutter */}
       <div className="receipt-top-spacer" aria-hidden />
 
-      <div className="text-center px-2 pb-2">
+      <div className="receipt-header">
         <p className="font-bold tracking-[0.12em] text-[15px] uppercase leading-tight">
           {t('shopInfo')}
         </p>
@@ -40,19 +40,19 @@ export function ThermalReceipt({ bill }: ThermalReceiptProps) {
 
       <div className="receipt-rule mx-2" />
 
-      <div className="px-2 py-2 space-y-1 text-[11px]">
-        <div className="flex justify-between gap-2">
-          <span>{t('billNumber')}</span>
-          <span className="font-bold">{bill.billNumber}</span>
+      <div className="receipt-meta">
+        <div className="receipt-row">
+          <span className="receipt-label">{t('billNumber')}</span>
+          <span className="receipt-value font-bold">{bill.billNumber}</span>
         </div>
-        <div className="flex justify-between gap-2">
-          <span>{t('date')}</span>
-          <span>{formatDate(bill.createdAt)}</span>
+        <div className="receipt-row">
+          <span className="receipt-label">{t('date')}</span>
+          <span className="receipt-value">{formatDate(bill.createdAt)}</span>
         </div>
         {bill.customerName && (
-          <div className="flex justify-between gap-2">
-            <span>{t('customer')}</span>
-            <span className="font-bold text-end">{bill.customerName}</span>
+          <div className="receipt-row">
+            <span className="receipt-label">{t('customer')}</span>
+            <span className="receipt-value font-bold">{bill.customerName}</span>
           </div>
         )}
       </div>
@@ -84,41 +84,43 @@ export function ThermalReceipt({ bill }: ThermalReceiptProps) {
 
       <div className="receipt-rule mx-2" />
 
-      <div className="px-2 py-2 space-y-1 text-[11px]">
-        <div className="flex justify-between">
-          <span>{t('subtotal')}</span>
-          <span>{formatPKR(bill.subtotal)}</span>
+      <div className="receipt-totals">
+        <div className="receipt-row">
+          <span className="receipt-label">{t('subtotal')}</span>
+          <span className="receipt-value">{formatPKR(bill.subtotal)}</span>
         </div>
         {bill.discount > 0 && (
-          <div className="flex justify-between">
-            <span>{t('discount')}</span>
-            <span>-{formatPKR(bill.discount)}</span>
+          <div className="receipt-row">
+            <span className="receipt-label">{t('discount')}</span>
+            <span className="receipt-value">-{formatPKR(bill.discount)}</span>
           </div>
         )}
-        <div className="flex justify-between items-baseline border-t border-black pt-1.5 mt-1">
-          <span className="font-bold text-[12px] uppercase">{t('total')}</span>
-          <span className="font-bold text-[13px]">{formatPKR(bill.total)}</span>
+        <div className="receipt-row receipt-total-row">
+          <span className="receipt-label font-bold text-[12px] uppercase">{t('total')}</span>
+          <span className="receipt-value font-bold text-[13px]">{formatPKR(bill.total)}</span>
         </div>
-        <div className="flex justify-between">
-          <span>{t('paid')}</span>
-          <span className="font-bold">{formatPKR(bill.paidAmount)}</span>
+        <div className="receipt-row">
+          <span className="receipt-label">{t('paid')}</span>
+          <span className="receipt-value font-bold">{formatPKR(bill.paidAmount)}</span>
         </div>
         {due > 0 && (
-          <div className="flex justify-between font-bold text-[12px]">
-            <span>{t('due')}</span>
-            <span>{formatPKR(due)}</span>
+          <div className="receipt-row font-bold text-[12px]">
+            <span className="receipt-label">{t('due')}</span>
+            <span className="receipt-value">{formatPKR(due)}</span>
           </div>
         )}
       </div>
 
       <div className="receipt-rule mx-2" />
 
-      <p className="text-center text-[12px] font-bold py-2 px-2">شکریہ — Thank You!</p>
-      <p className="text-center text-[11px] px-2 pb-2">Please visit again</p>
+      <div className="receipt-thanks">
+        <p className="text-[12px] font-bold py-2 px-2">شکریہ — Thank You!</p>
+        <p className="text-[11px] px-2 pb-2">Please visit again</p>
+      </div>
 
       <div className="receipt-rule mx-2" />
 
-      <div className="px-2 pt-2 pb-4 text-center">
+      <div className="receipt-footer px-2 pt-2 pb-4">
         <p className="text-[10px] font-bold tracking-[0.06em] uppercase">
           Software by AS CodeWorks
         </p>

@@ -147,6 +147,31 @@ body {
 .thermal-receipt .receipt-grid .col-qty { width: 10%; text-align: center; }
 .thermal-receipt .receipt-grid .col-rate { width: 19%; text-align: end; }
 .thermal-receipt .receipt-grid .col-amt { width: 19%; text-align: end; }
+.thermal-receipt .receipt-header,
+.thermal-receipt .receipt-thanks,
+.thermal-receipt .receipt-footer {
+  text-align: center;
+}
+.thermal-receipt .receipt-header { padding: 0 6px 6px; }
+.thermal-receipt .receipt-meta,
+.thermal-receipt .receipt-totals {
+  padding: 6px 6px;
+  font-size: 11px;
+}
+.thermal-receipt .receipt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 2px 0;
+}
+.thermal-receipt .receipt-label { flex: 0 0 auto; }
+.thermal-receipt .receipt-value { flex: 1 1 auto; text-align: right; }
+.thermal-receipt .receipt-total-row {
+  border-top: 1px solid #000;
+  padding-top: 5px;
+  margin-top: 4px;
+}
 
 @media print {
   @page {
