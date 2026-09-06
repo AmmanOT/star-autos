@@ -12,6 +12,7 @@ import { SearchInput } from '../ui/SearchInput';
 import { ThermalReceipt } from './ThermalReceipt';
 import type { Bill, BillItem } from '../../types';
 import { availableQtyForEdit, recalcBillTotals } from '../../utils/billEffects';
+import { printThermalReceipt } from '../../utils/printReceipt';
 import {
   formatPKR,
   formatDate,
@@ -215,6 +216,7 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
         productId: product.id,
         productName: lang === 'ur' ? product.nameUrdu : product.name,
         partNumber: product.partNumber,
+        brand: product.brand,
         quantity: 1,
         unitPrice: product.salePrice,
         total: product.salePrice,
@@ -262,7 +264,7 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
     }
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => printThermalReceipt();
   const handleWhatsApp = () => {
     const phone = bill.customerId
       ? state.customers.find((c) => c.id === bill.customerId)?.phone ?? '03001234567'

@@ -12,6 +12,7 @@ export interface BillItemData {
   productId: string;
   productName: string;
   partNumber: string;
+  brand?: string;
   quantity: number;
   unitPrice: number;
   total: number;
