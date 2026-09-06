@@ -103,13 +103,17 @@ body {
   }
 }
 
-/* On-screen + thermal receipt — high contrast, safe margins */
+/* 80mm roll / 72.1mm printable — matches "Printer 80(72.1) x 210 mm" */
 .thermal-receipt {
-  font-family: "Courier New", Courier, monospace;
+  font-family: Arial, Helvetica, sans-serif;
   box-sizing: border-box;
+  width: 72.1mm;
+  max-width: 72.1mm;
+  color: #000;
+  font-weight: 500;
 }
 .thermal-receipt .receipt-top-spacer {
-  height: 10mm; /* clear thermal head / cutter */
+  height: 8mm; /* clear thermal head / cutter */
 }
 .thermal-receipt .receipt-bottom-spacer {
   height: 8mm; /* paper feed before cut */
@@ -119,10 +123,34 @@ body {
   margin-top: 2px;
   margin-bottom: 2px;
 }
+.thermal-receipt .receipt-grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10px;
+  border: 1px solid #000;
+}
+.thermal-receipt .receipt-grid th,
+.thermal-receipt .receipt-grid td {
+  border: 1px solid #000;
+  padding: 3px 2px;
+  vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+.thermal-receipt .receipt-grid th {
+  font-weight: 700;
+  text-align: center;
+}
+.thermal-receipt .receipt-grid .col-item { width: 34%; text-align: start; }
+.thermal-receipt .receipt-grid .col-brand { width: 18%; text-align: center; }
+.thermal-receipt .receipt-grid .col-qty { width: 10%; text-align: center; }
+.thermal-receipt .receipt-grid .col-rate { width: 19%; text-align: end; }
+.thermal-receipt .receipt-grid .col-amt { width: 19%; text-align: end; }
 
 @media print {
   @page {
-    size: 80mm auto;
+    size: 72.1mm auto;
     margin: 0;
   }
 
@@ -131,6 +159,7 @@ body {
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
+    width: 72.1mm !important;
     height: auto !important;
     overflow: hidden !important;
   }
@@ -142,19 +171,19 @@ body {
   .thermal-receipt,
   .thermal-receipt * {
     visibility: visible !important;
+    color: #000 !important;
   }
 
   .thermal-receipt {
     position: fixed !important;
     left: 0 !important;
     top: 0 !important;
-    width: 80mm !important;
-    max-width: 80mm !important;
+    width: 72.1mm !important;
+    max-width: 72.1mm !important;
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
     background: #fff !important;
-    color: #000 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

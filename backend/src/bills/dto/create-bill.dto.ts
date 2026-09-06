@@ -26,6 +26,11 @@ export class BillItemDto {
   @IsString()
   partNumber: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  brand?: string;
+
   @ApiProperty()
   @IsNumber()
   @Min(1)
