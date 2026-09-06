@@ -11,7 +11,6 @@ import { Modal } from '../components/ui/Modal';
 import { ThermalReceipt } from '../components/billing/ThermalReceipt';
 import { BillRecordsPanel } from '../components/billing/BillRecordsPanel';
 import { formatPKR, whatsappBillLink, buildBillWhatsAppText } from '../utils/format';
-import { printThermalReceipt } from '../utils/printReceipt';
 import type { Bill, BillItem } from '../types';
 
 interface CartItem extends BillItem {
@@ -67,7 +66,6 @@ export function BillingPage() {
         productId: product.id,
         productName: lang === 'ur' ? product.nameUrdu : product.name,
         partNumber: product.partNumber,
-        brand: product.brand,
         quantity: 1,
         unitPrice: product.salePrice,
         total: product.salePrice,
@@ -120,7 +118,7 @@ export function BillingPage() {
     }
   };
 
-  const handlePrint = () => printThermalReceipt();
+  const handlePrint = () => window.print();
 
   const handleWhatsApp = () => {
     if (!receiptBill) return;

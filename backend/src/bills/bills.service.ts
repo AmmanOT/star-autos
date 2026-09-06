@@ -257,7 +257,6 @@ export class BillsService {
       productId: string;
       productName: string;
       partNumber: string;
-      brand?: string;
       quantity: number;
       unitPrice: number;
       total: number;
@@ -267,7 +266,6 @@ export class BillsService {
       productId: item.productId,
       productName: item.productName,
       partNumber: item.partNumber,
-      brand: item.brand,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       total: item.total,
