@@ -15,33 +15,36 @@ export class CreateProductDto {
   @MinLength(1)
   name: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ default: '' })
+  @IsOptional()
   @IsString()
-  nameUrdu: string;
+  nameUrdu?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ default: '' })
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  partNumber: string;
+  partNumber?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ default: '' })
+  @IsOptional()
   @IsString()
-  companyNumber: string;
+  companyNumber?: string;
 
-  @ApiProperty({ example: 'Genuine Suzuki' })
+  @ApiPropertyOptional({ example: 'Genuine Suzuki', default: '' })
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  brand: string;
+  brand?: string;
 
-  @ApiProperty({ example: 'Oil Filter' })
+  @ApiPropertyOptional({ example: 'Oil Filter', default: '' })
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  category: string;
+  category?: string;
 
-  @ApiProperty({ type: [String], example: ['Mehran', 'Alto'] })
+  @ApiPropertyOptional({ type: [String], example: ['Mehran', 'Alto'], default: [] })
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  vehicleModels: string[];
+  vehicleModels?: string[];
 
   @ApiProperty()
   @IsNumber()
@@ -58,10 +61,11 @@ export class CreateProductDto {
   @Min(0)
   quantity: number;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ default: 0 })
+  @IsOptional()
   @IsInt()
   @Min(0)
-  minStock: number;
+  minStock?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

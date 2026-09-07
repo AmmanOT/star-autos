@@ -59,6 +59,13 @@ export class ProductsService {
   async create(dto: CreateProductDto): Promise<Product> {
     const product = this.productsRepository.create({
       ...dto,
+      nameUrdu: dto.nameUrdu ?? '',
+      partNumber: dto.partNumber ?? '',
+      companyNumber: dto.companyNumber ?? '',
+      brand: dto.brand ?? '',
+      category: dto.category ?? '',
+      vehicleModels: dto.vehicleModels ?? [],
+      minStock: dto.minStock ?? 0,
       location: dto.location ?? null,
     });
     return this.productsRepository.save(product);

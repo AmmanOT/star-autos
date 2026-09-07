@@ -96,8 +96,16 @@ export function InventoryPage() {
   };
 
   const handleSave = async () => {
-    if (!form.brand || !form.category) {
-      toast.error('Please select brand and category');
+    if (!form.name.trim()) {
+      toast.error('Please enter a product name');
+      return;
+    }
+    if (form.purchasePrice === undefined || form.salePrice === undefined) {
+      toast.error('Please enter purchase and sale prices');
+      return;
+    }
+    if (form.quantity === undefined || Number.isNaN(form.quantity)) {
+      toast.error('Please enter quantity');
       return;
     }
     try {
@@ -223,8 +231,9 @@ export function InventoryPage() {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label={`${t('name')} (EN)`}
+            label={`${t('name')} (EN) *`}
             value={form.name}
+            required
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
           <Input
@@ -232,16 +241,6 @@ export function InventoryPage() {
             value={form.nameUrdu}
             onChange={(e) => setForm({ ...form, nameUrdu: e.target.value })}
             className="font-urdu"
-          />
-          <Input
-            label={t('partNumber')}
-            value={form.partNumber}
-            onChange={(e) => setForm({ ...form, partNumber: e.target.value })}
-          />
-          <Input
-            label={t('companyNumber')}
-            value={form.companyNumber}
-            onChange={(e) => setForm({ ...form, companyNumber: e.target.value })}
           />
           <CreatableSelect
             label={t('brand')}
@@ -271,20 +270,23 @@ export function InventoryPage() {
             }}
           />
           <Input
-            label={t('purchasePrice')}
+            label={`${t('purchasePrice')} *`}
             type="number"
+            required
             value={form.purchasePrice}
             onChange={(e) => setForm({ ...form, purchasePrice: +e.target.value })}
           />
           <Input
-            label={t('salePrice')}
+            label={`${t('salePrice')} *`}
             type="number"
+            required
             value={form.salePrice}
             onChange={(e) => setForm({ ...form, salePrice: +e.target.value })}
           />
           <Input
-            label={t('quantity')}
+            label={`${t('quantity')} *`}
             type="number"
+            required
             value={form.quantity}
             onChange={(e) => setForm({ ...form, quantity: +e.target.value })}
           />
