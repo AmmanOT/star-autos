@@ -117,10 +117,45 @@ export class SeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    await this.wipeExceptSaOnce();
     if (!this.configService.get<boolean>('seedOnStart')) {
       return;
     }
     await this.seed();
+  }
+
+  /** One-shot production wipe: keep only SA. Marker in app_meta prevents repeats. */
+  private async wipeExceptSaOnce() {
+    if (process.env.NODE_ENV !== 'production') {
+      return;
+    }
+    const marker = 'wipe_except_sa_20260906';
+    await this.usersRepo.query(`
+      CREATE TABLE IF NOT EXISTS app_meta (
+        key varchar(64) PRIMARY KEY,
+        value varchar(255) NOT NULL
+      )
+    `);
+    const existing: { value: string }[] = await this.usersRepo.query(
+      `SELECT value FROM app_meta WHERE key = $1`,
+      [marker],
+    );
+    if (existing.length > 0) {
+      return;
+    }
+
+    this.logger.warn('Wiping live data except SA credentials');
+    await this.usersRepo.query(
+      'TRUNCATE TABLE payments, bills, customers, products, activity_logs RESTART IDENTITY CASCADE',
+    );
+    await this.usersRepo.query(
+      `DELETE FROM users WHERE LOWER(username) <> 'sa'`,
+    );
+    await this.usersRepo.query(
+      `INSERT INTO app_meta (key, value) VALUES ($1, $2)`,
+      [marker, new Date().toISOString()],
+    );
+    this.logger.log('Wipe complete — SA login kept');
   }
 
   async seed() {
@@ -131,10 +166,12 @@ export class SeedService implements OnModuleInit {
 
     if (reset) {
       this.logger.warn('SEED_RESET=true — clearing all business data');
-      await this.paymentsRepo.clear();
-      await this.billsRepo.clear();
-      await this.customersRepo.clear();
-      await this.productsRepo.clear();
+      await this.usersRepo.query(
+        'TRUNCATE TABLE payments, bills, customers, products, activity_logs RESTART IDENTITY CASCADE',
+      );
+      await this.usersRepo.query(
+        `DELETE FROM users WHERE LOWER(username) <> 'sa'`,
+      );
     }
 
     await this.ensureStaff();
