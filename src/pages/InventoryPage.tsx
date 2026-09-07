@@ -35,6 +35,7 @@ export function InventoryPage() {
   const { t, lang } = useLanguage();
   const toast = useToast();
   const [search, setSearch] = useState('');
+  const [brandFilter, setBrandFilter] = useState('all');
   const [catFilter, setCatFilter] = useState('all');
   const [vehicleFilter, setVehicleFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
@@ -79,9 +80,10 @@ export function InventoryPage() {
       p.partNumber.toLowerCase().includes(q) ||
       p.companyNumber.toLowerCase().includes(q) ||
       p.brand.toLowerCase().includes(q);
+    const matchBrand = brandFilter === 'all' || p.brand === brandFilter;
     const matchCat = catFilter === 'all' || p.category === catFilter;
     const matchVehicle = vehicleFilter === 'all' || p.vehicleModels.includes(vehicleFilter);
-    return matchSearch && matchCat && matchVehicle;
+    return matchSearch && matchBrand && matchCat && matchVehicle;
   });
 
   const openAdd = () => {
@@ -140,6 +142,16 @@ export function InventoryPage() {
 
       <div className="flex flex-col lg:flex-row lg:items-end gap-3">
         <SearchInput value={search} onChange={setSearch} placeholder={t('search')} className="flex-1" />
+        <Select
+          label={t('brand')}
+          value={brandFilter}
+          onChange={(e) => setBrandFilter(e.target.value)}
+          options={[
+            { value: 'all', label: t('all') },
+            ...brands.map((b) => ({ value: b.name, label: b.name })),
+          ]}
+          className="lg:w-44"
+        />
         <Select
           label={t('category')}
           value={catFilter}
