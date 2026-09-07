@@ -144,7 +144,7 @@ export function VehicleMultiSelect({
   return (
     <div className="flex flex-col gap-2 md:col-span-2">
       <label className="text-sm font-medium text-[var(--color-text-muted)]">{label}</label>
-      <div className="max-h-40 overflow-y-auto rounded-lg border border-[var(--color-border)] p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="rounded-lg border border-[var(--color-border)] p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
         {options.map((name) => (
           <label key={name} className="flex items-center gap-2 text-sm cursor-pointer">
             <input

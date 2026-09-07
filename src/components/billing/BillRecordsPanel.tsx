@@ -191,9 +191,10 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
       const avail = p.quantity + onBill;
       return avail > 0 && (
         p.name.toLowerCase().includes(q) || p.nameUrdu.includes(q) ||
-        p.partNumber.toLowerCase().includes(q) || p.companyNumber.toLowerCase().includes(q)
+        p.partNumber.toLowerCase().includes(q) || p.companyNumber.toLowerCase().includes(q) ||
+        p.brand.toLowerCase().includes(q)
       );
-    }).slice(0, 6);
+    });
   }, [search, state.products, items, isEdit, lang]);
 
   const { subtotal, total } = recalcBillTotals(items, discount);
@@ -288,15 +289,17 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
             <p className="text-sm font-mono text-[var(--color-text-muted)]">{bill.billNumber}</p>
             <SearchInput value={search} onChange={setSearch} placeholder={t('search')} />
             {searchResults.length > 0 && (
-              <div className="space-y-1 border border-[var(--color-border)] rounded-lg p-2 max-h-40 overflow-y-auto">
+              <div className="space-y-1 border border-[var(--color-border)] rounded-lg p-2">
                 {searchResults.map((p) => (
                   <button key={p.id} onClick={() => addItem(p.id)} className="w-full text-start p-2 rounded hover:bg-[var(--color-surface-elevated)] text-sm">
-                    {lang === 'ur' ? p.nameUrdu : p.name} — {formatPKR(p.salePrice)}
+                    <span className="font-medium">{lang === 'ur' ? p.nameUrdu : p.name}</span>
+                    {p.brand ? <span className="text-[var(--color-text-muted)]"> · {p.brand}</span> : null}
+                    <span> — {formatPKR(p.salePrice)}</span>
                   </button>
                 ))}
               </div>
             )}
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="space-y-2">
               {items.map((item) => (
                 <div key={item.productId} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-surface-elevated)] text-sm">
                   <div className="flex-1 min-w-0"><p className="font-medium truncate">{item.productName}</p></div>

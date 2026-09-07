@@ -44,7 +44,7 @@ export function BillingPage() {
         p.partNumber.toLowerCase().includes(q) || p.companyNumber.toLowerCase().includes(q) ||
         p.brand.toLowerCase().includes(q)
       ),
-    ).slice(0, 8);
+    );
   }, [search, state.products]);
 
   const subtotal = cart.reduce((s, i) => s + i.total, 0);
@@ -171,7 +171,7 @@ export function BillingPage() {
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
           <div className="xl:col-span-3 space-y-4">
-            <SearchInput value={search} onChange={setSearch} placeholder={`${t('search')} — part no, company no, name...`} />
+            <SearchInput value={search} onChange={setSearch} placeholder={`${t('search')} — name, brand...`} />
 
             {searchResults.length > 0 && (
               <Card>
@@ -184,7 +184,9 @@ export function BillingPage() {
                     >
                       <div>
                         <p className="font-medium">{lang === 'ur' ? p.nameUrdu : p.name}</p>
-                        <p className="text-xs text-[var(--color-text-muted)]">{p.partNumber} · {p.companyNumber} · {p.brand}</p>
+                        {p.brand && (
+                          <p className="text-xs text-[var(--color-text-muted)]">{p.brand}</p>
+                        )}
                       </div>
                       <div className="text-end">
                         <p className="font-semibold">{formatPKR(p.salePrice)}</p>
@@ -210,7 +212,9 @@ export function BillingPage() {
                     <div key={item.productId} className="flex items-center gap-3 p-3 rounded-lg bg-[var(--color-surface-elevated)]">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{item.productName}</p>
-                        <p className="text-xs text-[var(--color-text-muted)]">{item.partNumber} · {formatPKR(item.unitPrice)}</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                          {item.brand ? `${item.brand} · ` : ''}{formatPKR(item.unitPrice)}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button variant="secondary" size="sm" icon={<Minus size={14} />} onClick={() => updateQty(item.productId, -1)} />
