@@ -15,6 +15,7 @@ export default () => ({
   },
   seedOnStart: process.env.SEED_ON_START === 'true',
   seedReset: process.env.SEED_RESET === 'true',
+  seedCatalog: process.env.SEED_CATALOG === 'true',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   typeormSync: process.env.TYPEORM_SYNC === 'true',
 });

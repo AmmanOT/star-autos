@@ -118,6 +118,7 @@ export class SeedService implements OnModuleInit {
 
   async onModuleInit() {
     await this.wipeExceptSaOnce();
+    await this.wipeSeededCatalogOnce();
     if (!this.configService.get<boolean>('seedOnStart')) {
       return;
     }
@@ -158,6 +159,37 @@ export class SeedService implements OnModuleInit {
     this.logger.log('Wipe complete — SA login kept');
   }
 
+  /** One-shot: remove seeded brands, categories, and vehicles. */
+  private async wipeSeededCatalogOnce() {
+    if (process.env.NODE_ENV !== 'production') {
+      return;
+    }
+    const marker = 'wipe_seeded_catalog_20260906';
+    await this.usersRepo.query(`
+      CREATE TABLE IF NOT EXISTS app_meta (
+        key varchar(64) PRIMARY KEY,
+        value varchar(255) NOT NULL
+      )
+    `);
+    const existing: { value: string }[] = await this.usersRepo.query(
+      `SELECT value FROM app_meta WHERE key = $1`,
+      [marker],
+    );
+    if (existing.length > 0) {
+      return;
+    }
+
+    this.logger.warn('Wiping seeded brands, categories, and vehicles');
+    await this.usersRepo.query(
+      'TRUNCATE TABLE brands, categories, vehicles RESTART IDENTITY CASCADE',
+    );
+    await this.usersRepo.query(
+      `INSERT INTO app_meta (key, value) VALUES ($1, $2)`,
+      [marker, new Date().toISOString()],
+    );
+    this.logger.log('Seeded catalog wipe complete');
+  }
+
   async seed() {
     const reset = this.configService.get<boolean>('seedReset') === true;
 
@@ -167,7 +199,7 @@ export class SeedService implements OnModuleInit {
     if (reset) {
       this.logger.warn('SEED_RESET=true — clearing all business data');
       await this.usersRepo.query(
-        'TRUNCATE TABLE payments, bills, customers, products, activity_logs RESTART IDENTITY CASCADE',
+        'TRUNCATE TABLE payments, bills, customers, products, activity_logs, brands, categories, vehicles RESTART IDENTITY CASCADE',
       );
       await this.usersRepo.query(
         `DELETE FROM users WHERE LOWER(username) <> 'sa'`,
@@ -175,12 +207,10 @@ export class SeedService implements OnModuleInit {
     }
 
     await this.ensureStaff();
-    await this.ensureCatalog();
-
-    if (reset) {
-      this.logger.log('Database reset complete — staff + PK catalog');
+    if (this.configService.get<boolean>('seedCatalog') === true) {
+      await this.ensureCatalog();
     } else {
-      this.logger.log('Staff + Pakistani Suzuki catalog ensured');
+      this.logger.log('Catalog seed skipped — add brands, categories, and vehicles in the app');
     }
   }
 
