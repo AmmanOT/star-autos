@@ -6,6 +6,7 @@ import { categoryLabel } from '../../i18n/translations';
 import { PART_CATEGORIES, VEHICLE_MODELS } from '../../data/mockData';
 import { ProductCard } from '../../components/shop/ProductCard';
 import { SearchInput } from '../../components/ui/SearchInput';
+import { productMatchesSearch } from '../../utils/search';
 import { Select } from '../../components/ui/Select';
 import { useState } from 'react';
 
@@ -20,13 +21,8 @@ export function ShopPage() {
 
   const filtered = useMemo(() => {
     let list = [...state.products];
-    const q = search.toLowerCase().trim();
-    if (q) {
-      list = list.filter((p) =>
-        p.name.toLowerCase().includes(q) || p.nameUrdu.includes(q) ||
-        p.partNumber.toLowerCase().includes(q) || p.companyNumber.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q),
-      );
+    if (search.trim()) {
+      list = list.filter((p) => productMatchesSearch(search, p));
     }
     if (category !== 'all') list = list.filter((p) => p.category === category);
     if (vehicle !== 'all') list = list.filter((p) => p.vehicleModels.includes(vehicle));

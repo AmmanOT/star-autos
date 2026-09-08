@@ -23,15 +23,18 @@ export class ProductsService {
     const qb = this.productsRepository.createQueryBuilder('product');
 
     if (filters.search) {
-      const search = `%${filters.search.toLowerCase()}%`;
-      qb.andWhere(
-        `(LOWER(product.name) LIKE :search
-          OR LOWER(product.name_urdu) LIKE :search
-          OR LOWER(product.part_number) LIKE :search
-          OR LOWER(product.company_number) LIKE :search
-          OR LOWER(product.brand) LIKE :search)`,
-        { search },
-      );
+      const words = filters.search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+      words.forEach((word, i) => {
+        const key = `search${i}`;
+        qb.andWhere(
+          `(LOWER(product.name) LIKE :${key}
+            OR LOWER(product.name_urdu) LIKE :${key}
+            OR LOWER(product.part_number) LIKE :${key}
+            OR LOWER(product.company_number) LIKE :${key}
+            OR LOWER(product.brand) LIKE :${key})`,
+          { [key]: `%${word}%` },
+        );
+      });
     }
 
     if (filters.category) {

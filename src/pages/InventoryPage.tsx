@@ -14,6 +14,7 @@ import { Select } from '../components/ui/Select';
 import { SearchInput } from '../components/ui/SearchInput';
 import { CreatableSelect, VehicleMultiSelect } from '../components/ui/CreatableSelect';
 import { formatPKR, isLowStock } from '../utils/format';
+import { productMatchesSearch } from '../utils/search';
 
 const emptyProduct = (): Omit<Product, 'id' | 'createdAt'> => ({
   name: '',
@@ -72,14 +73,7 @@ export function InventoryPage() {
   };
 
   const filtered = state.products.filter((p) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      p.name.toLowerCase().includes(q) ||
-      p.nameUrdu.includes(q) ||
-      p.partNumber.toLowerCase().includes(q) ||
-      p.companyNumber.toLowerCase().includes(q) ||
-      p.brand.toLowerCase().includes(q);
+    const matchSearch = productMatchesSearch(search, p);
     const matchBrand = brandFilter === 'all' || p.brand === brandFilter;
     const matchCat = catFilter === 'all' || p.category === catFilter;
     const matchVehicle = vehicleFilter === 'all' || p.vehicleModels.includes(vehicleFilter);

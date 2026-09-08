@@ -11,6 +11,7 @@ import { Modal } from '../components/ui/Modal';
 import { ThermalReceipt } from '../components/billing/ThermalReceipt';
 import { BillRecordsPanel } from '../components/billing/BillRecordsPanel';
 import { formatPKR, whatsappBillLink, buildBillWhatsAppText } from '../utils/format';
+import { productMatchesSearch } from '../utils/search';
 import { printThermalReceipt } from '../utils/printReceipt';
 import type { Bill, BillItem } from '../types';
 
@@ -36,15 +37,8 @@ export function BillingPage() {
   const [showReceipt, setShowReceipt] = useState(false);
 
   const searchResults = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return [];
-    return state.products.filter((p) =>
-      p.quantity > 0 && (
-        p.name.toLowerCase().includes(q) || p.nameUrdu.includes(q) ||
-        p.partNumber.toLowerCase().includes(q) || p.companyNumber.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q)
-      ),
-    );
+    if (!search.trim()) return [];
+    return state.products.filter((p) => p.quantity > 0 && productMatchesSearch(search, p));
   }, [search, state.products]);
 
   const subtotal = cart.reduce((s, i) => s + i.total, 0);

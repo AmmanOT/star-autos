@@ -10,6 +10,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { SearchInput } from '../components/ui/SearchInput';
 import { formatPKR, formatDateShort } from '../utils/format';
+import { matchesSearch } from '../utils/search';
 
 export function LedgerPage() {
   const { state, dispatch } = useStore();
@@ -19,10 +20,9 @@ export function LedgerPage() {
   const [paymentModal, setPaymentModal] = useState(false);
   const [payForm, setPayForm] = useState({ amount: 0, type: 'received' as 'received' | 'paid', method: 'cash' as 'cash' | 'bank', notes: '' });
 
-  const filteredCustomers = state.customers.filter((c) => {
-    const q = search.toLowerCase();
-    return !q || c.name.toLowerCase().includes(q) || c.nameUrdu.includes(q) || c.phone.includes(q);
-  });
+  const filteredCustomers = state.customers.filter((c) =>
+    matchesSearch(search, c.name, c.nameUrdu, c.phone),
+  );
 
   const selected = state.customers.find((c) => c.id === selectedId);
   const customerBills = state.bills.filter((b) => b.customerId === selectedId);

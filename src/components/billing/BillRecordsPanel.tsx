@@ -20,6 +20,7 @@ import {
   whatsappBillLink,
   buildBillWhatsAppText,
 } from '../../utils/format';
+import { matchesSearch, productMatchesSearch } from '../../utils/search';
 
 interface CartItem extends BillItem {
   maxQty: number;
@@ -39,10 +40,12 @@ export function BillRecordsPanel() {
 
   const filtered = useMemo(() => {
     return state.bills.filter((b) => {
-      const q = search.toLowerCase();
-      const matchSearch = !q || b.billNumber.toLowerCase().includes(q) ||
-        (b.customerName?.toLowerCase().includes(q) ?? false) ||
-        b.items.some((i) => i.productName.toLowerCase().includes(q) || i.partNumber.toLowerCase().includes(q));
+      const matchSearch = matchesSearch(
+        search,
+        b.billNumber,
+        b.customerName,
+        ...b.items.flatMap((i) => [i.productName, i.partNumber]),
+      );
       const matchCustomer = customerFilter === 'all' || b.customerId === customerFilter || (customerFilter === 'walkin' && !b.customerId);
       const matchPayment = paymentFilter === 'all' || b.paymentMethod === paymentFilter;
       const d = new Date(b.createdAt);
@@ -184,16 +187,11 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
 
   const searchResults = useMemo(() => {
     if (!isEdit) return [];
-    const q = search.toLowerCase().trim();
-    if (!q) return [];
+    if (!search.trim()) return [];
     return state.products.filter((p) => {
       const onBill = items.find((i) => i.productId === p.id)?.quantity ?? 0;
       const avail = p.quantity + onBill;
-      return avail > 0 && (
-        p.name.toLowerCase().includes(q) || p.nameUrdu.includes(q) ||
-        p.partNumber.toLowerCase().includes(q) || p.companyNumber.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q)
-      );
+      return avail > 0 && productMatchesSearch(search, p);
     });
   }, [search, state.products, items, isEdit, lang]);
 

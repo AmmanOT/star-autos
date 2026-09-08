@@ -12,6 +12,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { SearchInput } from '../components/ui/SearchInput';
 import { formatPKR } from '../utils/format';
+import { matchesSearch } from '../utils/search';
 
 const emptyCustomer = (): Omit<Customer, 'id' | 'createdAt' | 'balance'> => ({
   name: '', nameUrdu: '', type: 'workshop', phone: '', address: '', city: 'Lahore', creditLimit: 50000,
@@ -27,8 +28,7 @@ export function CustomersPage() {
   const [form, setForm] = useState(emptyCustomer());
 
   const filtered = state.customers.filter((c) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || c.name.toLowerCase().includes(q) || c.nameUrdu.includes(q) || c.phone.includes(q) || c.city.toLowerCase().includes(q);
+    const matchSearch = matchesSearch(search, c.name, c.nameUrdu, c.phone, c.city);
     const matchType = typeFilter === 'all' || c.type === typeFilter;
     return matchSearch && matchType;
   });
