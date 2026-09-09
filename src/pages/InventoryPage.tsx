@@ -179,7 +179,6 @@ export function InventoryPage() {
                 <th className="text-start px-5 py-2">{t('name')}</th>
                 <th className="text-start px-3 py-2">{t('category')}</th>
                 <th className="text-start px-3 py-2">{t('vehicle')}</th>
-                <th className="text-end px-3 py-2">{t('purchasePrice')}</th>
                 <th className="text-end px-3 py-2">{t('salePrice')}</th>
                 <th className="text-end px-3 py-2">{t('stock')}</th>
                 <th className="text-end px-5 py-2">{t('actions')}</th>
@@ -199,7 +198,6 @@ export function InventoryPage() {
                     <Badge>{catLabel(p.category)}</Badge>
                   </td>
                   <td className="px-3 py-3 text-xs">{p.vehicleModels.join(', ')}</td>
-                  <td className="px-3 py-3 text-end">{formatPKR(p.purchasePrice)}</td>
                   <td className="px-3 py-3 text-end font-medium">{formatPKR(p.salePrice)}</td>
                   <td className="px-3 py-3 text-end">
                     <Badge variant={isLowStock(p.quantity, p.minStock) ? 'danger' : 'success'}>

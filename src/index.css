@@ -142,11 +142,12 @@ body {
   font-weight: 700;
   text-align: center;
 }
-.thermal-receipt .receipt-grid .col-item { width: 34%; text-align: start; }
-.thermal-receipt .receipt-grid .col-brand { width: 18%; text-align: center; }
+.thermal-receipt .receipt-grid .col-sr { width: 7%; text-align: center; }
+.thermal-receipt .receipt-grid .col-item { width: 30%; text-align: start; }
+.thermal-receipt .receipt-grid .col-brand { width: 17%; text-align: center; }
 .thermal-receipt .receipt-grid .col-qty { width: 10%; text-align: center; }
-.thermal-receipt .receipt-grid .col-rate { width: 19%; text-align: end; }
-.thermal-receipt .receipt-grid .col-amt { width: 19%; text-align: end; }
+.thermal-receipt .receipt-grid .col-rate { width: 18%; text-align: end; }
+.thermal-receipt .receipt-grid .col-amt { width: 18%; text-align: end; }
 .thermal-receipt .receipt-header,
 .thermal-receipt .receipt-thanks,
 .thermal-receipt .receipt-footer {

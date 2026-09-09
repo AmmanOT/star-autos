@@ -62,6 +62,7 @@ export function ThermalReceipt({ bill }: ThermalReceiptProps) {
       <table className="receipt-grid">
         <thead>
           <tr>
+            <th className="col-sr">Sr</th>
             <th className="col-item">{t('items')}</th>
             <th className="col-brand">{t('brand')}</th>
             <th className="col-qty">{t('quantity')}</th>
@@ -72,6 +73,7 @@ export function ThermalReceipt({ bill }: ThermalReceiptProps) {
         <tbody>
           {bill.items.map((item, i) => (
             <tr key={i}>
+              <td className="col-sr">{i + 1}</td>
               <td className="col-item leading-snug">{item.productName}</td>
               <td className="col-brand">{itemBrand(item.productId, item.brand)}</td>
               <td className="col-qty">{item.quantity}</td>

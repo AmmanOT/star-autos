@@ -4,6 +4,7 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { StoreProvider } from './contexts/StoreContext';
+import { BillingDraftProvider } from './contexts/BillingDraftContext';
 import { MainLayout } from './components/layout/MainLayout';
 import { ProtectedRoute, PublicRoute } from './components/layout/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
@@ -24,7 +25,8 @@ export default function App() {
         <ToastProvider>
           <AuthProvider>
             <StoreProvider>
-              <BrowserRouter>
+              <BillingDraftProvider>
+                <BrowserRouter>
                 <Routes>
                   <Route element={<PublicRoute />}>
                     <Route path="/login" element={<LoginPage />} />
@@ -63,7 +65,8 @@ export default function App() {
                   <Route path="/" element={<Navigate to="/login" replace />} />
                   <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
-              </BrowserRouter>
+                </BrowserRouter>
+              </BillingDraftProvider>
             </StoreProvider>
           </AuthProvider>
         </ToastProvider>

@@ -77,10 +77,11 @@ const RECEIPT_PRINT_CSS = `
     overflow-wrap: anywhere;
   }
   .receipt-grid th { font-weight: 700; text-align: center; }
-  .col-item { width: 34%; text-align: left; }
-  .col-brand { width: 18%; text-align: center; }
+  .col-sr { width: 7%; text-align: center; }
+  .col-item { width: 30%; text-align: left; }
+  .col-brand { width: 17%; text-align: center; }
   .col-qty { width: 10%; text-align: center; }
-  .col-rate, .col-amt { width: 19%; text-align: right; }
+  .col-rate, .col-amt { width: 18%; text-align: right; }
   .receipt-thanks p { margin: 0; padding: 2px 6px; }
   .receipt-thanks p:first-child { font-size: 12px; font-weight: 700; padding-top: 8px; }
   .receipt-thanks p:last-child { font-size: 11px; padding-bottom: 8px; }

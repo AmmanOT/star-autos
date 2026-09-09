@@ -50,7 +50,7 @@ export function buildBillWhatsAppText(
     `🧾 *${shopName}*`,
     `Bill: ${billNumber}`,
     '---',
-    ...items.map((i) => `${i.name} x${i.qty} = Rs.${i.total.toLocaleString()}`),
+    ...items.map((i, n) => `${n + 1}. ${i.name} x${i.qty} = Rs.${i.total.toLocaleString()}`),
     '---',
     `*Total: Rs.${total.toLocaleString()}*`,
     `Paid: Rs.${paid.toLocaleString()}`,

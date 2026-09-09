@@ -298,8 +298,9 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
               </div>
             )}
             <div className="space-y-2">
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <div key={item.productId} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-surface-elevated)] text-sm">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-800 dark:bg-brand-900/60 dark:text-brand-200">{index + 1}</span>
                   <div className="flex-1 min-w-0"><p className="font-medium truncate">{item.productName}</p></div>
                   <Button variant="secondary" size="sm" icon={<Minus size={12} />} onClick={() => updateQty(item.productId, -1)} />
                   <span className="w-6 text-center">{item.quantity}</span>

@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
-import { Plus, Minus, Trash2, Printer, MessageCircle, ShoppingCart } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Trash2, Printer, MessageCircle, ShoppingCart } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useBillingDraft } from '../contexts/BillingDraftContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
@@ -10,31 +11,45 @@ import { SearchInput } from '../components/ui/SearchInput';
 import { Modal } from '../components/ui/Modal';
 import { ThermalReceipt } from '../components/billing/ThermalReceipt';
 import { BillRecordsPanel } from '../components/billing/BillRecordsPanel';
+import { QtyStepper } from '../components/billing/QtyStepper';
 import { formatPKR, whatsappBillLink, buildBillWhatsAppText } from '../utils/format';
 import { productMatchesSearch } from '../utils/search';
 import { printThermalReceipt } from '../utils/printReceipt';
-import type { Bill, BillItem } from '../types';
-
-interface CartItem extends BillItem {
-  maxQty: number;
-}
+import type { Bill } from '../types';
 
 type Tab = 'new' | 'records';
 
 export function BillingPage() {
   const { state, dispatch } = useStore();
   const { t, lang } = useLanguage();
+  const {
+    cart,
+    customerId,
+    discount,
+    paidAmount,
+    paymentMethod,
+    notes,
+    addToCart: addDraftItem,
+    updateQty,
+    removeItem,
+    clearCart,
+    setCustomerId,
+    setDiscount,
+    setPaidAmount,
+    setPaymentMethod,
+    setNotes,
+    clearDraft,
+    syncCartStock,
+  } = useBillingDraft();
 
   const [tab, setTab] = useState<Tab>('new');
   const [search, setSearch] = useState('');
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [customerId, setCustomerId] = useState('');
-  const [discount, setDiscount] = useState(0);
-  const [paidAmount, setPaidAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank' | 'credit' | 'mixed'>('cash');
-  const [notes, setNotes] = useState('');
   const [receiptBill, setReceiptBill] = useState<Bill | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+
+  useEffect(() => {
+    syncCartStock(state.products);
+  }, [state.products, syncCartStock]);
 
   const searchResults = useMemo(() => {
     if (!search.trim()) return [];
@@ -47,45 +62,24 @@ export function BillingPage() {
   const addToCart = (productId: string) => {
     const product = state.products.find((p) => p.id === productId);
     if (!product || product.quantity <= 0) return;
-    setCart((prev) => {
-      const existing = prev.find((i) => i.productId === productId);
-      if (existing) {
-        if (existing.quantity >= product.quantity) return prev;
-        return prev.map((i) =>
-          i.productId === productId
-            ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice }
-            : i,
-        );
-      }
-      return [...prev, {
-        productId: product.id,
-        productName: lang === 'ur' ? product.nameUrdu : product.name,
-        partNumber: product.partNumber,
-        brand: product.brand,
-        quantity: 1,
-        unitPrice: product.salePrice,
-        total: product.salePrice,
-        maxQty: product.quantity,
-      }];
+    addDraftItem({
+      productId: product.id,
+      productName: lang === 'ur' ? product.nameUrdu : product.name,
+      partNumber: product.partNumber,
+      brand: product.brand,
+      quantity: 1,
+      unitPrice: product.salePrice,
+      total: product.salePrice,
+      maxQty: product.quantity,
     });
     setSearch('');
   };
 
-  const updateQty = (productId: string, delta: number) => {
-    setCart((prev) =>
-      prev.flatMap((i) => {
-        if (i.productId !== productId) return [i];
-        const newQty = i.quantity + delta;
-        if (newQty <= 0) return [];
-        if (newQty > i.maxQty) return [i];
-        return [{ ...i, quantity: newQty, total: newQty * i.unitPrice }];
-      }),
-    );
-  };
-
   const completeBill = async () => {
     if (cart.length === 0) return;
-    const customer = customerId ? state.customers.find((c) => c.id === customerId) : undefined;
+    const customer = customerId
+      ? state.customers.find((c) => c.id === customerId)
+      : undefined;
     const paid = paymentMethod === 'credit' ? 0 : (paidAmount || total);
     try {
       const created = (await dispatch({
@@ -104,11 +98,7 @@ export function BillingPage() {
       })) as Bill;
       setReceiptBill(created);
       setShowReceipt(true);
-      setCart([]);
-      setCustomerId('');
-      setDiscount(0);
-      setPaidAmount(0);
-      setNotes('');
+      clearDraft();
     } catch {
       /* toast handled in store */
     }
@@ -193,7 +183,7 @@ export function BillingPage() {
             )}
 
             <Card title={`${t('items')} (${cart.length})`} action={
-              cart.length > 0 && <Button variant="ghost" size="sm" onClick={() => setCart([])}>{t('clearCart')}</Button>
+              cart.length > 0 && <Button variant="ghost" size="sm" onClick={clearCart}>{t('clearCart')}</Button>
             }>
               {cart.length === 0 ? (
                 <div className="text-center py-12 text-[var(--color-text-muted)]">
@@ -202,21 +192,25 @@ export function BillingPage() {
                 </div>
               ) : (
                 <div className="space-y-3 -m-2">
-                  {cart.map((item) => (
+                  {cart.map((item, index) => (
                     <div key={item.productId} className="flex items-center gap-3 p-3 rounded-lg bg-[var(--color-surface-elevated)]">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-800 dark:bg-brand-900/60 dark:text-brand-200">
+                        {index + 1}
+                      </span>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{item.productName}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">
                           {item.brand ? `${item.brand} · ` : ''}{formatPKR(item.unitPrice)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="secondary" size="sm" icon={<Minus size={14} />} onClick={() => updateQty(item.productId, -1)} />
-                        <span className="w-8 text-center font-medium">{item.quantity}</span>
-                        <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={() => updateQty(item.productId, 1)} />
-                      </div>
+                      <QtyStepper
+                        value={item.quantity}
+                        max={item.maxQty}
+                        onChange={(qty) => updateQty(item.productId, qty)}
+                        onDecrementToZero={() => removeItem(item.productId)}
+                      />
                       <p className="font-semibold w-24 text-end">{formatPKR(item.total)}</p>
-                      <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => updateQty(item.productId, -999)} />
+                      <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => removeItem(item.productId)} />
                     </div>
                   ))}
                 </div>
