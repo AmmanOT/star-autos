@@ -90,4 +90,53 @@ export class PaymentsService {
       return saved;
     });
   }
+
+  async remove(id: string, user: AuthUser): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      const payment = await manager.findOne(Payment, { where: { id } });
+      if (!payment) {
+        throw new NotFoundException(`Payment ${id} not found`);
+      }
+
+      const customer = await manager.findOne(Customer, {
+        where: { id: payment.customerId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!customer) {
+        throw new NotFoundException(`Customer ${payment.customerId} not found`);
+      }
+
+      const balanceBefore = Number(customer.balance);
+      const amount = Number(payment.amount);
+      if (payment.type === PaymentType.RECEIVED) {
+        customer.balance = balanceBefore + amount;
+      } else {
+        customer.balance = balanceBefore - amount;
+      }
+      await manager.save(customer);
+      await manager.remove(payment);
+
+      const typeLabel =
+        payment.type === PaymentType.RECEIVED ? 'received from' : 'paid to';
+      await this.activityLogs.write(
+        {
+          action: 'payment.deleted',
+          entityType: 'payment',
+          entityId: id,
+          user,
+          summary: `${user.name} deleted payment ${typeLabel} ${customer.name}: Rs. ${amount.toLocaleString('en-PK')}`,
+          meta: {
+            customerId: customer.id,
+            customerName: customer.name,
+            amount,
+            type: payment.type,
+            method: payment.method,
+            balanceBefore,
+            balanceAfter: Number(customer.balance),
+          },
+        },
+        manager,
+      );
+    });
+  }
 }

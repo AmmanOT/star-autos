@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -32,5 +32,16 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Create payment and update customer balance' })
   create(@Body() dto: CreatePaymentDto, @CurrentUser() user: AuthUser) {
     return this.paymentsService.create(dto, user);
+  }
+
+  @Delete(':id')
+  @RequirePermissions(Permission.LEDGER)
+  @ApiOperation({ summary: 'Delete payment and restore customer balance' })
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.paymentsService.remove(id, user);
+    return { success: true };
   }
 }

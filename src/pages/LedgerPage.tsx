@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from '../components/ui/Button';
@@ -43,6 +43,24 @@ export function LedgerPage() {
       });
       setPaymentModal(false);
       setPayForm({ amount: 0, type: 'received', method: 'cash', notes: '' });
+    } catch {
+      /* toast handled in store */
+    }
+  };
+
+  const handleDeletePayment = async (id: string) => {
+    if (!confirm(t('confirmDeletePayment'))) return;
+    try {
+      await dispatch({ type: 'DELETE_PAYMENT', payload: id });
+    } catch {
+      /* toast handled in store */
+    }
+  };
+
+  const handleDeleteBill = async (billNumber: string, id: string) => {
+    if (!confirm(`${t('confirmDeleteBill')} (${billNumber})`)) return;
+    try {
+      await dispatch({ type: 'DELETE_BILL', payload: id });
     } catch {
       /* toast handled in store */
     }
@@ -117,6 +135,7 @@ export function LedgerPage() {
                           <th className="text-end px-3 py-2">{t('paid')}</th>
                           <th className="text-end px-3 py-2">{t('due')}</th>
                           <th className="text-end px-5 py-2">{t('date')}</th>
+                          <th className="text-end px-5 py-2">{t('actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -127,6 +146,14 @@ export function LedgerPage() {
                             <td className="px-3 py-3 text-end">{formatPKR(b.paidAmount)}</td>
                             <td className="px-3 py-3 text-end text-amber-600">{formatPKR(b.total - b.paidAmount)}</td>
                             <td className="px-5 py-3 text-end text-[var(--color-text-muted)]">{formatDateShort(b.createdAt)}</td>
+                            <td className="px-5 py-3 text-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon={<Trash2 size={14} />}
+                                onClick={() => void handleDeleteBill(b.billNumber, b.id)}
+                              />
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -149,7 +176,15 @@ export function LedgerPage() {
                           <p className="text-xs text-[var(--color-text-muted)] mt-1">{formatDateShort(p.createdAt)} · {p.method}</p>
                           {p.notes && <p className="text-xs mt-0.5">{p.notes}</p>}
                         </div>
-                        <span className="font-bold">{formatPKR(p.amount)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{formatPKR(p.amount)}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Trash2 size={14} />}
+                            onClick={() => void handleDeletePayment(p.id)}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>

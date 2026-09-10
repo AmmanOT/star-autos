@@ -4,6 +4,11 @@ export function formatPKR(amount: number): string {
 
 const PK_TZ = 'Asia/Karachi';
 
+/** Calendar date in Pakistan (YYYY-MM-DD), used so "today" matches shop time. */
+export function pkDateKey(date: Date | string = new Date()): string {
+  return new Date(date).toLocaleDateString('en-CA', { timeZone: PK_TZ });
+}
+
 export function formatDate(dateStr: string, lang: 'en' | 'ur' = 'en'): string {
   const d = new Date(dateStr);
   return d.toLocaleString(lang === 'ur' ? 'ur-PK' : 'en-PK', {

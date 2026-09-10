@@ -39,6 +39,7 @@ export const paymentsApi = {
   list: (customerId?: string) =>
     apiRequest<Payment[]>(customerId ? `/payments?customerId=${customerId}` : '/payments'),
   create: (body: PaymentInput) => apiRequest<Payment>('/payments', { method: 'POST', body }),
+  remove: (id: string) => apiRequest<void>(`/payments/${id}`, { method: 'DELETE' }),
 };
 
 export const activityLogsApi = {

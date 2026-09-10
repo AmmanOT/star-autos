@@ -35,7 +35,8 @@ type Action =
     }
   | { type: 'UPDATE_BILL'; payload: Bill }
   | { type: 'DELETE_BILL'; payload: string }
-  | { type: 'ADD_PAYMENT'; payload: Omit<Payment, 'id' | 'createdAt'> };
+  | { type: 'ADD_PAYMENT'; payload: Omit<Payment, 'id' | 'createdAt'> }
+  | { type: 'DELETE_PAYMENT'; payload: string };
 
 const emptyState: AppState = {
   products: [],
@@ -55,6 +56,7 @@ const successMessage: Record<Action['type'], string> = {
   UPDATE_BILL: 'Bill updated',
   DELETE_BILL: 'Bill deleted',
   ADD_PAYMENT: 'Payment recorded',
+  DELETE_PAYMENT: 'Payment deleted, balance restored',
 };
 
 interface StoreContextValue {
@@ -150,6 +152,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             break;
           case 'ADD_PAYMENT':
             result = await paymentsApi.create(action.payload);
+            break;
+          case 'DELETE_PAYMENT':
+            await paymentsApi.remove(action.payload);
             break;
           default:
             break;
