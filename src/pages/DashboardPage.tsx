@@ -4,20 +4,20 @@ import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { StatCard, Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { formatPKR, formatDateShort, isLowStock, pkDateKey } from '../utils/format';
+import { formatPKR, formatDateShort, isLowStock } from '../utils/format';
 
 export function DashboardPage() {
   const { state } = useStore();
   const { t, lang } = useLanguage();
 
-  const today = pkDateKey();
-  const todayBills = state.bills.filter((b) => pkDateKey(b.createdAt) === today);
+  const today = new Date().toDateString();
+  const todayBills = state.bills.filter((b) => new Date(b.createdAt).toDateString() === today);
   const todaySales = todayBills.reduce((s, b) => s + b.total, 0);
   const pendingDues = state.customers.reduce((s, c) => s + Math.max(0, c.balance), 0);
   const lowStockItems = state.products.filter((p) => isLowStock(p.quantity, p.minStock));
   const inventoryValue = state.products.reduce((s, p) => s + p.purchasePrice * p.quantity, 0);
-  const thisMonth = today.slice(0, 7);
-  const billsThisMonth = state.bills.filter((b) => pkDateKey(b.createdAt).startsWith(thisMonth));
+  const thisMonth = new Date().getMonth();
+  const billsThisMonth = state.bills.filter((b) => new Date(b.createdAt).getMonth() === thisMonth);
 
   return (
     <div className="space-y-6">

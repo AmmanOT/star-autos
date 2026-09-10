@@ -19,7 +19,6 @@ import {
   formatDateShort,
   whatsappBillLink,
   buildBillWhatsAppText,
-  pkDateKey,
 } from '../../utils/format';
 import { matchesSearch, productMatchesSearch } from '../../utils/search';
 
@@ -49,9 +48,9 @@ export function BillRecordsPanel() {
       );
       const matchCustomer = customerFilter === 'all' || b.customerId === customerFilter || (customerFilter === 'walkin' && !b.customerId);
       const matchPayment = paymentFilter === 'all' || b.paymentMethod === paymentFilter;
-      const key = pkDateKey(b.createdAt);
-      const matchFrom = !dateFrom || key >= dateFrom;
-      const matchTo = !dateTo || key <= dateTo;
+      const d = new Date(b.createdAt);
+      const matchFrom = !dateFrom || d >= new Date(dateFrom);
+      const matchTo = !dateTo || d <= new Date(dateTo + 'T23:59:59');
       return matchSearch && matchCustomer && matchPayment && matchFrom && matchTo;
     });
   }, [state.bills, search, customerFilter, paymentFilter, dateFrom, dateTo]);
