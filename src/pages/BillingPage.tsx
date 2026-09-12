@@ -38,6 +38,7 @@ export function BillingPage() {
     setPaidAmount,
     setPaymentMethod,
     setNotes,
+    updateUnitPrice,
     clearDraft,
     syncCartStock,
   } = useBillingDraft();
@@ -200,9 +201,17 @@ export function BillingPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{item.productName}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">
-                          {item.brand ? `${item.brand} · ` : ''}{formatPKR(item.unitPrice)}
+                          {item.brand ? `${item.brand} · ` : ''}{t('rate')}
                         </p>
                       </div>
+                      <input
+                        type="number"
+                        min={0}
+                        value={item.unitPrice}
+                        onChange={(e) => updateUnitPrice(item.productId, +e.target.value)}
+                        className="w-24 px-2 py-1.5 text-sm text-end rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]"
+                        aria-label={t('rate')}
+                      />
                       <QtyStepper
                         value={item.quantity}
                         max={item.maxQty}

@@ -42,6 +42,7 @@ interface BillingDraftContextValue {
   setPaidAmount: (n: number) => void;
   setPaymentMethod: (m: DraftPaymentMethod) => void;
   setNotes: (s: string) => void;
+  updateUnitPrice: (productId: string, unitPrice: number) => void;
   clearDraft: () => void;
   syncCartStock: (products: Array<{ id: string; quantity: number }>) => void;
 }
@@ -154,6 +155,16 @@ export function BillingDraftProvider({ children }: { children: ReactNode }) {
     setDraft((prev) => ({ ...prev, notes }));
   }, []);
 
+  const updateUnitPrice = useCallback((productId: string, unitPrice: number) => {
+    const price = Number.isFinite(unitPrice) && unitPrice >= 0 ? unitPrice : 0;
+    setDraft((prev) => ({
+      ...prev,
+      cart: prev.cart.map((i) =>
+        i.productId === productId ? { ...i, unitPrice: price, total: i.quantity * price } : i,
+      ),
+    }));
+  }, []);
+
   const clearDraft = useCallback(() => {
     setDraft(emptyDraft);
   }, []);
@@ -199,6 +210,7 @@ export function BillingDraftProvider({ children }: { children: ReactNode }) {
       setPaidAmount,
       setPaymentMethod,
       setNotes,
+      updateUnitPrice,
       clearDraft,
       syncCartStock,
     }),
@@ -214,6 +226,7 @@ export function BillingDraftProvider({ children }: { children: ReactNode }) {
       setPaidAmount,
       setPaymentMethod,
       setNotes,
+      updateUnitPrice,
       clearDraft,
       syncCartStock,
     ],

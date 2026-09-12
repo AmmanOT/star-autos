@@ -237,6 +237,15 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
     );
   };
 
+  const updateItemPrice = (productId: string, unitPrice: number) => {
+    const price = Number.isFinite(unitPrice) && unitPrice >= 0 ? unitPrice : 0;
+    setItems((prev) =>
+      prev.map((i) =>
+        i.productId === productId ? { ...i, unitPrice: price, total: i.quantity * price } : i,
+      ),
+    );
+  };
+
   const handleSave = async () => {
     if (items.length === 0) return;
     const customer = customerId ? state.customers.find((c) => c.id === customerId) : undefined;
@@ -302,6 +311,14 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
                 <div key={item.productId} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-surface-elevated)] text-sm">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-800 dark:bg-brand-900/60 dark:text-brand-200">{index + 1}</span>
                   <div className="flex-1 min-w-0"><p className="font-medium truncate">{item.productName}</p></div>
+                  <input
+                    type="number"
+                    min={0}
+                    value={item.unitPrice}
+                    onChange={(e) => updateItemPrice(item.productId, +e.target.value)}
+                    className="w-20 px-2 py-1 text-sm text-end rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]"
+                    aria-label={t('rate')}
+                  />
                   <Button variant="secondary" size="sm" icon={<Minus size={12} />} onClick={() => updateQty(item.productId, -1)} />
                   <span className="w-6 text-center">{item.quantity}</span>
                   <Button variant="secondary" size="sm" icon={<Plus size={12} />} onClick={() => updateQty(item.productId, 1)} />
