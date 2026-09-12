@@ -205,13 +205,17 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
     const existing = items.find((i) => i.productId === productId);
     if (existing) {
       if (existing.quantity >= maxQty) return;
-      setItems((prev) => prev.map((i) =>
-        i.productId === productId
-          ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice, maxQty }
-          : i,
-      ));
+      setItems((prev) => {
+        const updated = {
+          ...existing,
+          quantity: existing.quantity + 1,
+          total: (existing.quantity + 1) * existing.unitPrice,
+          maxQty,
+        };
+        return [updated, ...prev.filter((i) => i.productId !== productId)];
+      });
     } else {
-      setItems((prev) => [...prev, {
+      setItems((prev) => [{
         productId: product.id,
         productName: lang === 'ur' ? product.nameUrdu : product.name,
         partNumber: product.partNumber,
@@ -220,7 +224,7 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
         unitPrice: product.salePrice,
         total: product.salePrice,
         maxQty,
-      }]);
+      }, ...prev]);
     }
     setSearch('');
   };

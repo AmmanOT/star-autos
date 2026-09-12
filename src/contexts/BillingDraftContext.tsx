@@ -89,16 +89,13 @@ export function BillingDraftProvider({ children }: { children: ReactNode }) {
       const existing = prev.cart.find((i) => i.productId === item.productId);
       if (existing) {
         const quantity = Math.min(existing.maxQty, existing.quantity + 1);
+        const updated = { ...existing, quantity, total: quantity * existing.unitPrice, maxQty: item.maxQty };
         return {
           ...prev,
-          cart: prev.cart.map((i) =>
-            i.productId === item.productId
-              ? { ...i, quantity, total: quantity * i.unitPrice, maxQty: item.maxQty }
-              : i,
-          ),
+          cart: [updated, ...prev.cart.filter((i) => i.productId !== item.productId)],
         };
       }
-      return { ...prev, cart: [...prev.cart, { ...item, quantity: 1, total: item.unitPrice }] };
+      return { ...prev, cart: [{ ...item, quantity: 1, total: item.unitPrice }, ...prev.cart] };
     });
   }, []);
 
