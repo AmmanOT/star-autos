@@ -11,7 +11,7 @@ import { Select } from '../ui/Select';
 import { SearchInput } from '../ui/SearchInput';
 import { ThermalReceipt } from './ThermalReceipt';
 import type { Bill, BillItem } from '../../types';
-import { availableQtyForEdit, recalcBillTotals } from '../../utils/billEffects';
+import { availableQtyForEdit, billProfit, recalcBillTotals } from '../../utils/billEffects';
 import { printThermalReceipt } from '../../utils/printReceipt';
 import {
   formatPKR,
@@ -103,6 +103,7 @@ export function BillRecordsPanel() {
                 <th className="text-start px-3 py-2">{t('customer')}</th>
                 <th className="text-start px-3 py-2">{t('items')}</th>
                 <th className="text-end px-3 py-2">{t('total')}</th>
+                <th className="text-end px-3 py-2">{t('profit')}</th>
                 <th className="text-end px-3 py-2">{t('paid')}</th>
                 <th className="text-end px-3 py-2">{t('due')}</th>
                 <th className="text-start px-3 py-2">{t('paymentMethod')}</th>
@@ -119,6 +120,7 @@ export function BillRecordsPanel() {
                     <td className="px-3 py-3">{bill.customerName ?? t('walkIn')}</td>
                     <td className="px-3 py-3 text-[var(--color-text-muted)]">{bill.items.length}</td>
                     <td className="px-3 py-3 text-end font-medium">{formatPKR(bill.total)}</td>
+                    <td className="px-3 py-3 text-end font-medium text-emerald-600">{formatPKR(billProfit(bill, state.products))}</td>
                     <td className="px-3 py-3 text-end">{formatPKR(bill.paidAmount)}</td>
                     <td className="px-3 py-3 text-end">
                       {due > 0 ? <span className="text-amber-600 font-medium">{formatPKR(due)}</span> : '—'}
@@ -363,6 +365,7 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
             <div><span className="text-[var(--color-text-muted)]">{t('date')}: </span>{formatDate(bill.createdAt)}</div>
             <div><span className="text-[var(--color-text-muted)]">{t('customer')}: </span>{bill.customerName ?? t('walkIn')}</div>
             <div><span className="text-[var(--color-text-muted)]">{t('paymentMethod')}: </span>{paymentLabel(bill.paymentMethod)}</div>
+            <div><span className="text-[var(--color-text-muted)]">{t('profit')}: </span><span className="font-medium text-emerald-600">{formatPKR(billProfit(bill, state.products))}</span></div>
           </div>
           <ThermalReceipt bill={bill} />
           <div className="flex flex-wrap gap-2 mt-4 justify-center no-print">

@@ -84,8 +84,10 @@ export function LedgerPage() {
               <button
                 key={c.id}
                 onClick={() => setSelectedId(c.id)}
-                className={`w-full text-start p-3 rounded-lg transition-colors ${
-                  selectedId === c.id ? 'bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800' : 'hover:bg-[var(--color-surface-elevated)]'
+                className={`w-full text-start p-3 rounded-lg transition-colors border ${
+                  selectedId === c.id
+                    ? 'bg-brand-50 dark:bg-brand-800/80 border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/40 shadow-sm'
+                    : 'border-transparent hover:bg-[var(--color-surface-elevated)]'
                 }`}
               >
                 <p className="font-medium">{lang === 'ur' ? c.nameUrdu : c.name}</p>

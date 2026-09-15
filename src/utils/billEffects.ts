@@ -38,3 +38,12 @@ export function recalcBillTotals(items: Bill['items'], discount: number) {
   const total = Math.max(0, subtotal - discount);
   return { subtotal, total };
 }
+
+/** Same basis as Reports: (sale line) − (current purchase price × qty). */
+export function billProfit(bill: Pick<Bill, 'items'>, products: Product[]): number {
+  return bill.items.reduce((sum, item) => {
+    const product = products.find((p) => p.id === item.productId);
+    const cost = product ? product.purchasePrice * item.quantity : 0;
+    return sum + (item.total - cost);
+  }, 0);
+}
