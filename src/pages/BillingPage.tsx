@@ -12,12 +12,14 @@ import { Modal } from '../components/ui/Modal';
 import { ThermalReceipt } from '../components/billing/ThermalReceipt';
 import { BillRecordsPanel } from '../components/billing/BillRecordsPanel';
 import { QtyStepper } from '../components/billing/QtyStepper';
+import { CustomerFormModal } from '../components/customers/CustomerFormModal';
 import { formatPKR, whatsappBillLink, buildBillWhatsAppText } from '../utils/format';
 import { productMatchesSearch } from '../utils/search';
 import { printThermalReceipt } from '../utils/printReceipt';
-import type { Bill } from '../types';
+import type { Bill, Customer } from '../types';
 
 type Tab = 'new' | 'records';
+const ADD_NEW_CUSTOMER = '__add_new__';
 
 export function BillingPage() {
   const { state, dispatch } = useStore();
@@ -47,6 +49,7 @@ export function BillingPage() {
   const [search, setSearch] = useState('');
   const [receiptBill, setReceiptBill] = useState<Bill | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
 
   useEffect(() => {
     syncCartStock(state.products);
@@ -103,6 +106,18 @@ export function BillingPage() {
     } catch {
       /* toast handled in store */
     }
+  };
+
+  const handleCustomerSelect = (value: string) => {
+    if (value === ADD_NEW_CUSTOMER) {
+      setAddCustomerOpen(true);
+      return;
+    }
+    setCustomerId(value);
+  };
+
+  const handleCustomerCreated = (customer: Customer) => {
+    if (customer?.id) setCustomerId(customer.id);
   };
 
   const handlePrint = () => printThermalReceipt();
@@ -198,7 +213,10 @@ export function BillingPage() {
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-800 dark:bg-brand-900/60 dark:text-brand-200">
                         {index + 1}
                       </span>
-                      <div className="flex-1 min-w-0">
+                      <div
+                        className="flex-1 min-w-0 has-tip"
+                        data-tip={item.brand ? `${item.productName} · ${item.brand}` : item.productName}
+                      >
                         <p className="font-medium truncate">{item.productName}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">
                           {item.brand ? `${item.brand} · ` : ''}{t('rate')}
@@ -233,9 +251,10 @@ export function BillingPage() {
                 <Select
                   label={t('selectCustomer')}
                   value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
+                  onChange={(e) => handleCustomerSelect(e.target.value)}
                   options={[
                     { value: '', label: t('walkIn') },
+                    { value: ADD_NEW_CUSTOMER, label: t('addNew') },
                     ...state.customers.map((c) => ({ value: c.id, label: `${c.name} (${c.phone})` })),
                   ]}
                 />
@@ -273,6 +292,12 @@ export function BillingPage() {
           </div>
         </div>
       )}
+
+      <CustomerFormModal
+        open={addCustomerOpen}
+        onClose={() => setAddCustomerOpen(false)}
+        onSaved={handleCustomerCreated}
+      />
 
       <Modal open={showReceipt} onClose={() => setShowReceipt(false)} title={t('thermalReceipt')} size="sm">
         {receiptBill && (

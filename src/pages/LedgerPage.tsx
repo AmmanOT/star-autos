@@ -9,6 +9,7 @@ import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { SearchInput } from '../components/ui/SearchInput';
+import { BulkPrintBillsButton } from '../components/billing/BulkPrintBills';
 import { formatPKR, formatDateShort } from '../utils/format';
 import { matchesSearch } from '../utils/search';
 
@@ -71,7 +72,10 @@ export function LedgerPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">{t('ledger')}</h1>
         {selected && (
-          <Button icon={<Plus size={16} />} onClick={() => setPaymentModal(true)}>{t('addPayment')}</Button>
+          <div className="flex flex-wrap gap-2">
+            <BulkPrintBillsButton defaultCustomerId={selected.id} />
+            <Button icon={<Plus size={16} />} onClick={() => setPaymentModal(true)}>{t('addPayment')}</Button>
+          </div>
         )}
       </div>
 
@@ -128,9 +132,9 @@ export function LedgerPage() {
                 {customerBills.length === 0 ? (
                   <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
                 ) : (
-                  <div className="overflow-x-auto -mx-5 -mb-5">
+                  <div className="overflow-auto max-h-[min(50vh,420px)] -mx-5 -mb-5">
                     <table className="w-full text-sm">
-                      <thead>
+                      <thead className="sticky top-0 z-10 bg-[var(--color-surface)]">
                         <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
                           <th className="text-start px-5 py-2">{t('billNumber')}</th>
                           <th className="text-end px-3 py-2">{t('total')}</th>
@@ -164,11 +168,11 @@ export function LedgerPage() {
                 )}
               </Card>
 
-              <Card title={t('addPayment')}>
+              <Card title={t('logPayments')}>
                 {customerPayments.length === 0 ? (
                   <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-[min(40vh,320px)] overflow-y-auto">
                     {customerPayments.map((p) => (
                       <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-elevated)]">
                         <div>

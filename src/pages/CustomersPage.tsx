@@ -2,21 +2,15 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, Phone } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { CITIES } from '../constants/catalog';
 import type { Customer, CustomerType } from '../types';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { Modal } from '../components/ui/Modal';
-import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { SearchInput } from '../components/ui/SearchInput';
+import { CustomerFormModal } from '../components/customers/CustomerFormModal';
 import { formatPKR } from '../utils/format';
 import { matchesSearch } from '../utils/search';
-
-const emptyCustomer = (): Omit<Customer, 'id' | 'createdAt' | 'balance'> => ({
-  name: '', nameUrdu: '', type: 'workshop', phone: '', address: '', city: 'Lahore', creditLimit: 50000,
-});
 
 export function CustomersPage() {
   const { state, dispatch } = useStore();
@@ -25,7 +19,6 @@ export function CustomersPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
-  const [form, setForm] = useState(emptyCustomer());
 
   const filtered = state.customers.filter((c) => {
     const matchSearch = matchesSearch(search, c.name, c.nameUrdu, c.phone, c.city);
@@ -45,21 +38,8 @@ export function CustomersPage() {
     return { text: t('settled'), variant: 'success' as const };
   };
 
-  const openAdd = () => { setEditing(null); setForm(emptyCustomer()); setModalOpen(true); };
-  const openEdit = (c: Customer) => { setEditing(c); setForm({ ...c }); setModalOpen(true); };
-
-  const handleSave = async () => {
-    try {
-      if (editing) {
-        await dispatch({ type: 'UPDATE_CUSTOMER', payload: { ...editing, ...form } as Customer });
-      } else {
-        await dispatch({ type: 'ADD_CUSTOMER', payload: form });
-      }
-      setModalOpen(false);
-    } catch {
-      /* toast handled in store */
-    }
-  };
+  const openAdd = () => { setEditing(null); setModalOpen(true); };
+  const openEdit = (c: Customer) => { setEditing(c); setModalOpen(true); };
 
   const handleDelete = async (id: string) => {
     if (!confirm(t('confirmDelete'))) return;
@@ -122,23 +102,11 @@ export function CustomersPage() {
       </div>
       {filtered.length === 0 && <p className="text-center py-8 text-[var(--color-text-muted)]">{t('noResults')}</p>}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? t('editCustomer') : t('addCustomer')} size="lg">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input label={`${t('name')} (EN)`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <Input label={`${t('name')} (UR)`} value={form.nameUrdu} onChange={(e) => setForm({ ...form, nameUrdu: e.target.value })} />
-          <Select label={t('type')} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as CustomerType })} options={[
-            { value: 'workshop', label: t('workshop') }, { value: 'wholesaler', label: t('wholesaler') }, { value: 'retail', label: t('retail') },
-          ]} />
-          <Input label={t('phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="03XX-XXXXXXX" />
-          <Input label={t('address')} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="md:col-span-2" />
-          <Select label={t('city')} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} options={CITIES.map((c) => ({ value: c, label: c }))} />
-          <Input label={t('creditLimit')} type="number" value={form.creditLimit} onChange={(e) => setForm({ ...form, creditLimit: +e.target.value })} />
-        </div>
-        <div className="flex justify-end gap-2 mt-6">
-          <Button variant="secondary" onClick={() => setModalOpen(false)}>{t('cancel')}</Button>
-          <Button onClick={handleSave}>{t('save')}</Button>
-        </div>
-      </Modal>
+      <CustomerFormModal
+        open={modalOpen}
+        editing={editing}
+        onClose={() => { setModalOpen(false); setEditing(null); }}
+      />
     </div>
   );
 }

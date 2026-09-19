@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Users, Receipt, BookOpen, BarChart3, Settings, LogOut,
-  Moon, Sun, Globe, Menu, X, ScrollText, UserCog,
+  Moon, Sun, Globe, Menu, X, ScrollText, UserCog, Eye, EyeOff,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -36,6 +36,17 @@ export function MainLayout() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [privacyOn, setPrivacyOn] = useState(
+    () => typeof sessionStorage !== 'undefined' && sessionStorage.getItem('privacy-blur') === '1',
+  );
+
+  const togglePrivacy = () => {
+    setPrivacyOn((prev) => {
+      const next = !prev;
+      sessionStorage.setItem('privacy-blur', next ? '1' : '0');
+      return next;
+    });
+  };
 
   const links = navLinks.filter((link) => {
     if (link.adminOnly) return isAdmin;
@@ -124,6 +135,18 @@ export function MainLayout() {
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
             <button
+              onClick={togglePrivacy}
+              className={`p-2 rounded-lg border ${
+                privacyOn
+                  ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700'
+                  : 'text-[var(--color-text)] border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)]'
+              }`}
+              title={privacyOn ? t('showRecords') : t('hideRecords')}
+              aria-pressed={privacyOn}
+            >
+              {privacyOn ? <Eye size={18} /> : <EyeOff size={18} />}
+            </button>
+            <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
             >
@@ -133,7 +156,11 @@ export function MainLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-auto w-full max-w-[100vw] lg:max-w-none">
+        <main
+          className={`flex-1 p-3 sm:p-4 lg:p-6 overflow-auto w-full max-w-[100vw] lg:max-w-none ${
+            privacyOn ? 'privacy-blur' : ''
+          }`}
+        >
           <Outlet />
         </main>
 

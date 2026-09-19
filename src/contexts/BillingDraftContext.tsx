@@ -70,19 +70,21 @@ function readJson<T>(key: string, fallback: T): T {
 const BillingDraftContext = createContext<BillingDraftContextValue | null>(null);
 
 export function BillingDraftProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [draft, setDraft] = useState<BillingDraft>(() => readJson(DRAFT_KEY, emptyDraft));
 
   useEffect(() => {
+    if (loading || !user) return;
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draft]);
+  }, [draft, user, loading]);
 
   useEffect(() => {
+    if (loading) return;
     if (!user) {
       setDraft(emptyDraft);
       localStorage.removeItem(DRAFT_KEY);
     }
-  }, [user]);
+  }, [user, loading]);
 
   const addToCart = useCallback((item: CartItem) => {
     setDraft((prev) => {

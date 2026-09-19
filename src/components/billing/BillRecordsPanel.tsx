@@ -10,7 +10,9 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { SearchInput } from '../ui/SearchInput';
 import { ThermalReceipt } from './ThermalReceipt';
-import type { Bill, BillItem } from '../../types';
+import { CustomerFormModal } from '../customers/CustomerFormModal';
+import { BulkPrintBillsButton } from './BulkPrintBills';
+import type { Bill, BillItem, Customer } from '../../types';
 import { availableQtyForEdit, billProfit, recalcBillTotals } from '../../utils/billEffects';
 import { printThermalReceipt } from '../../utils/printReceipt';
 import {
@@ -21,6 +23,8 @@ import {
   buildBillWhatsAppText,
 } from '../../utils/format';
 import { matchesSearch, productMatchesSearch } from '../../utils/search';
+
+const ADD_NEW_CUSTOMER = '__add_new__';
 
 interface CartItem extends BillItem {
   maxQty: number;
@@ -92,6 +96,9 @@ export function BillRecordsPanel() {
         ]} className="lg:w-36" />
         <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="lg:w-40" />
         <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="lg:w-40" />
+        <BulkPrintBillsButton
+          defaultCustomerId={customerFilter !== 'all' ? customerFilter : ''}
+        />
       </div>
 
       <Card>
@@ -186,6 +193,7 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
   const [paymentMethod, setPaymentMethod] = useState(bill.paymentMethod);
   const [notes, setNotes] = useState(bill.notes ?? '');
   const [search, setSearch] = useState('');
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
 
   const searchResults = useMemo(() => {
     if (!isEdit) return [];
@@ -316,7 +324,9 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
               {items.map((item, index) => (
                 <div key={item.productId} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-surface-elevated)] text-sm">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-800 dark:bg-brand-900/60 dark:text-brand-200">{index + 1}</span>
-                  <div className="flex-1 min-w-0"><p className="font-medium truncate">{item.productName}</p></div>
+                  <div className="flex-1 min-w-0 has-tip" data-tip={item.productName}>
+                    <p className="font-medium truncate">{item.productName}</p>
+                  </div>
                   <input
                     type="number"
                     min={0}
@@ -334,10 +344,22 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
             </div>
           </div>
           <div className="space-y-4">
-            <Select label={t('selectCustomer')} value={customerId} onChange={(e) => setCustomerId(e.target.value)} options={[
-              { value: '', label: t('walkIn') },
-              ...state.customers.map((c) => ({ value: c.id, label: c.name })),
-            ]} />
+            <Select
+              label={t('selectCustomer')}
+              value={customerId}
+              onChange={(e) => {
+                if (e.target.value === ADD_NEW_CUSTOMER) {
+                  setAddCustomerOpen(true);
+                  return;
+                }
+                setCustomerId(e.target.value);
+              }}
+              options={[
+                { value: '', label: t('walkIn') },
+                { value: ADD_NEW_CUSTOMER, label: t('addNew') },
+                ...state.customers.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+            />
             <Input label={t('discount')} type="number" value={discount} onChange={(e) => setDiscount(+e.target.value)} />
             <Select label={t('paymentMethod')} value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as Bill['paymentMethod'])} options={[
               { value: 'cash', label: t('cash') }, { value: 'bank', label: t('bank') },
@@ -375,6 +397,13 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
           </div>
         </>
       )}
+      <CustomerFormModal
+        open={addCustomerOpen}
+        onClose={() => setAddCustomerOpen(false)}
+        onSaved={(customer: Customer) => {
+          if (customer?.id) setCustomerId(customer.id);
+        }}
+      />
     </Modal>
   );
 }

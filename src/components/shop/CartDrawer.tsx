@@ -67,8 +67,13 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                 const maxQty = syncMaxQty(item.productId);
                 return (
                   <div key={item.productId} className="flex gap-3 p-3 rounded-xl bg-[var(--color-surface-elevated)]">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{lang === 'ur' ? item.nameUrdu : item.name}</p>
+                    <div
+                      className="flex-1 min-w-0 has-tip"
+                      data-tip={lang === 'ur' ? item.nameUrdu : item.name}
+                    >
+                      <p className="font-medium text-sm truncate">
+                        {lang === 'ur' ? item.nameUrdu : item.name}
+                      </p>
                       <p className="text-xs text-[var(--color-text-muted)]">{item.partNumber}</p>
                       <p className="text-sm font-semibold mt-1">{formatPKR(item.unitPrice)}</p>
                     </div>

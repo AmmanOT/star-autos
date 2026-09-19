@@ -36,6 +36,15 @@
   --color-border: #243247;
   --color-text: #f1f5f9;
   --color-text-muted: #cbd5e1;
+  color-scheme: dark;
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 /* Navy brand text/icons are invisible on dark — remap text utilities only (keep bg-brand-* navy) */
@@ -69,6 +78,51 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+::selection {
+  background: #c8102e;
+  color: #fff;
+}
+
+.has-tip {
+  position: relative;
+  overflow: visible;
+}
+.has-tip[data-tip]:hover::after,
+.has-tip[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 50;
+  max-width: min(22rem, 70vw);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #0a2342;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: normal;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+.dark .has-tip[data-tip]:hover::after,
+.dark .has-tip[data-tip]:focus-visible::after {
+  background: #e2e8f0;
+  color: #0a121c;
+}
+
+select,
+select option,
+input[type='date'] {
+  color-scheme: inherit;
+}
+
+select option {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
 .font-display {
   font-family: var(--font-display);
 }
@@ -76,6 +130,12 @@ body {
 [dir="rtl"] body,
 [dir="rtl"] .font-urdu {
   font-family: var(--font-urdu);
+}
+
+.privacy-blur {
+  filter: blur(22px);
+  pointer-events: none;
+  user-select: none;
 }
 
 ::-webkit-scrollbar {

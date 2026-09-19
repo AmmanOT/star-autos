@@ -75,7 +75,7 @@ function stripProduct(p: Partial<Product>) {
 }
 
 function stripCustomer(c: Partial<Customer>) {
-  const { id: _id, createdAt: _c, ...rest } = c as Customer;
+  const { id: _id, createdAt: _c, balance: _b, ...rest } = c as Customer;
   return rest;
 }
 

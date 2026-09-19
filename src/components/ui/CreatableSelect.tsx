@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from './Button';
 import { Input } from './Input';
+import { Select } from './Select';
 
 const ADD_VALUE = '__add_new__';
 
@@ -82,22 +83,17 @@ export function CreatableSelect({
   }
 
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      <label className="text-sm font-medium text-[var(--color-text-muted)]">{label}</label>
-      <select
-        className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500"
-        value={value}
-        onChange={(e) => handleSelect(e.target.value)}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-        <option value={ADD_VALUE}>+ Add new {label.toLowerCase()}…</option>
-      </select>
-    </div>
+    <Select
+      label={label}
+      className={className}
+      value={value}
+      onChange={(e) => handleSelect(e.target.value)}
+      options={[
+        { value: '', label: placeholder },
+        ...options,
+        { value: ADD_VALUE, label: `+ Add new ${label.toLowerCase()}…` },
+      ]}
+    />
   );
 }
 

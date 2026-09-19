@@ -92,6 +92,10 @@ const RECEIPT_PRINT_CSS = `
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
+  .receipt-page-break {
+    page-break-after: always;
+    break-after: page;
+  }
 `;
 
 /**
@@ -103,6 +107,11 @@ const RECEIPT_PRINT_CSS = `
 export function printThermalReceipt() {
   const source = document.querySelector('.thermal-receipt');
   if (!source) return;
+  printThermalReceipts([source]);
+}
+
+export function printThermalReceipts(sources: Element[]) {
+  if (sources.length === 0) return;
 
   const prev = document.getElementById('thermal-print-frame');
   prev?.remove();
@@ -126,7 +135,12 @@ export function printThermalReceipt() {
     `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt</title><style>${RECEIPT_PRINT_CSS}</style></head><body></body></html>`,
   );
   doc.close();
-  doc.body.appendChild(source.cloneNode(true));
+
+  sources.forEach((source, i) => {
+    const clone = source.cloneNode(true) as HTMLElement;
+    if (i < sources.length - 1) clone.classList.add('receipt-page-break');
+    doc.body.appendChild(clone);
+  });
 
   let cleaned = false;
   const cleanup = () => {

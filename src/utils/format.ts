@@ -26,6 +26,14 @@ export function formatDateShort(dateStr: string): string {
   });
 }
 
+export function pkDateKey(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-CA', { timeZone: PK_TZ });
+}
+
+export function todayPkDateKey(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: PK_TZ });
+}
+
 export function generateBillNumber(): string {
   const year = new Date().getFullYear();
   const num = Math.floor(Math.random() * 9000) + 1000;
