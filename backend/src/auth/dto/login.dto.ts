@@ -1,13 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class LoginDto {
-  @ApiProperty({ example: 'sa', description: 'Staff username' })
+  @ApiProperty({ example: 'sa', description: 'Staff or customer login name' })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[a-zA-Z0-9._@-]{2,60}$/, {
-    message: 'Enter a valid username',
-  })
+  @MinLength(1)
+  @MaxLength(80)
   username: string;
 
   @ApiProperty({ example: '••••••••' })

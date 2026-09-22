@@ -13,7 +13,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 
 export function normalizeUsername(username: string): string {
-  return username.trim().toLowerCase();
+  return username.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 @Injectable()
@@ -174,7 +174,7 @@ export class UsersService {
     excludeUserId?: string,
   ): Promise<string> {
     const base =
-      normalizeUsername(name).replace(/\s+/g, ' ').slice(0, 50) ||
+      normalizeUsername(name).slice(0, 50) ||
       `c-${customerId.replace(/-/g, '').slice(0, 10)}`;
     let candidate = base.slice(0, 60);
     let n = 2;
