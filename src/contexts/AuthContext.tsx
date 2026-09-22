@@ -8,14 +8,14 @@ import {
   type ReactNode,
 } from 'react';
 import { authApi } from '../api/auth';
-import { getToken, setToken, ApiError } from '../api/client';
+import { getToken, setToken } from '../api/client';
 import { hasPermission, homePath } from '../constants/permissions';
 import type { Permission, User, UserRole } from '../types';
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<User | null>;
+  login: (username: string, password: string) => Promise<User>;
   logout: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   isAdmin: boolean;
@@ -46,15 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    try {
-      const res = await authApi.login(username, password);
-      setToken(res.accessToken);
-      setUser(res.user);
-      return res.user;
-    } catch (err) {
-      if (err instanceof ApiError) return null;
-      throw err;
-    }
+    const res = await authApi.login(username, password);
+    setToken(res.accessToken);
+    setUser(res.user);
+    return res.user;
   }, []);
 
   const logout = useCallback(() => {

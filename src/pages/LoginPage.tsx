@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import { homePath } from '../constants/permissions';
+import { ApiError } from '../api/client';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { BrandLogo } from '../components/brand/BrandLogo';
@@ -23,17 +24,20 @@ export function LoginPage() {
     setError('');
     setSubmitting(true);
     try {
-      const signedIn = await login(username.trim().toLowerCase(), password);
-      if (signedIn) {
-        toast.success('Signed in successfully');
-        navigate(homePath(signedIn));
+      const signedIn = await login(
+        username.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9._@-]/g, ''),
+        password,
+      );
+      toast.success('Signed in successfully');
+      navigate(homePath(signedIn));
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+        toast.error(err.message);
       } else {
-        setError(t('invalidUsernamePassword'));
-        toast.error(t('invalidUsernamePassword'));
+        setError('Unable to connect. Please try again.');
+        toast.error('Unable to connect. Please try again.');
       }
-    } catch {
-      setError('Unable to connect. Please try again.');
-      toast.error('Unable to connect. Please try again.');
     } finally {
       setSubmitting(false);
     }

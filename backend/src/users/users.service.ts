@@ -16,6 +16,17 @@ export function normalizeUsername(username: string): string {
   return username.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+/** Login-safe username: "MADINA AUTOS" -> "madina-autos" */
+export function slugUsername(username: string): string {
+  return username
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9._@-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -24,9 +35,14 @@ export class UsersService {
   ) {}
 
   async findByUsername(username: string): Promise<User | null> {
-    return this.usersRepository.findOne({
-      where: { username: normalizeUsername(username) },
-    });
+    const exact = normalizeUsername(username);
+    const slug = slugUsername(username);
+    const matches = [exact, slug].filter(Boolean);
+    for (const value of [...new Set(matches)]) {
+      const user = await this.usersRepository.findOne({ where: { username: value } });
+      if (user) return user;
+    }
+    return null;
   }
 
   async findById(id: string): Promise<User> {
@@ -174,7 +190,7 @@ export class UsersService {
     excludeUserId?: string,
   ): Promise<string> {
     const base =
-      normalizeUsername(name).slice(0, 50) ||
+      slugUsername(name).slice(0, 50) ||
       `c-${customerId.replace(/-/g, '').slice(0, 10)}`;
     let candidate = base.slice(0, 60);
     let n = 2;
