@@ -116,6 +116,9 @@ export function VehicleMultiSelect({
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [filter, setFilter] = useState('');
+  const q = filter.trim().toLowerCase();
+  const shown = q ? options.filter((name) => name.toLowerCase().includes(q)) : options;
 
   const toggle = (name: string) => {
     if (value.includes(name)) onChange(value.filter((v) => v !== name));
@@ -140,8 +143,16 @@ export function VehicleMultiSelect({
   return (
     <div className="flex flex-col gap-2 md:col-span-2">
       <label className="text-sm font-medium text-[var(--color-text-muted)]">{label}</label>
-      <div className="rounded-lg border border-[var(--color-border)] p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {options.map((name) => (
+      {options.length > 0 && (
+        <Input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Search vehicles..."
+          className="select-search"
+        />
+      )}
+      <div className="rounded-lg border border-[var(--color-border)] p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+        {shown.map((name) => (
           <label key={name} className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
@@ -154,6 +165,9 @@ export function VehicleMultiSelect({
         ))}
         {options.length === 0 && (
           <p className="text-xs text-[var(--color-text-muted)] col-span-full">No vehicles yet</p>
+        )}
+        {options.length > 0 && shown.length === 0 && (
+          <p className="text-xs text-[var(--color-text-muted)] col-span-full">No matches</p>
         )}
       </div>
       {adding ? (
