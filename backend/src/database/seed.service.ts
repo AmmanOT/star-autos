@@ -12,6 +12,7 @@ import { Brand } from '../catalog/entities/brand.entity';
 import { Category } from '../catalog/entities/category.entity';
 import { Vehicle } from '../catalog/entities/vehicle.entity';
 import { Permission, UserRole } from '../common/enums';
+import { UsersService } from '../users/users.service';
 
 const SA = {
   id: 'c0000001-0000-4000-8000-000000000001',
@@ -114,11 +115,13 @@ export class SeedService implements OnModuleInit {
     private readonly categoriesRepo: Repository<Category>,
     @InjectRepository(Vehicle)
     private readonly vehiclesRepo: Repository<Vehicle>,
+    private readonly usersService: UsersService,
   ) {}
 
   async onModuleInit() {
     await this.wipeExceptSaOnce();
     await this.wipeSeededCatalogOnce();
+    await this.migrateCustomerPortal();
     if (!this.configService.get<boolean>('seedOnStart')) {
       return;
     }
@@ -195,6 +198,7 @@ export class SeedService implements OnModuleInit {
 
     await this.migrateProductCategoryColumn();
     await this.migrateUserPermissionsColumn();
+    await this.migrateCustomerPortal();
 
     if (reset) {
       this.logger.warn('SEED_RESET=true — clearing all business data');
@@ -296,6 +300,47 @@ export class SeedService implements OnModuleInit {
     this.logger.log(
       `Catalog: ${PK_BRANDS.length} brands, ${PK_CATEGORIES.length} categories, ${PK_VEHICLES.length} vehicles`,
     );
+  }
+
+  /** Customer portal logins: role varchar + customer_id, then a login per customer. */
+  private async migrateCustomerPortal() {
+    try {
+      await this.usersRepo.query(`
+        DO $$ BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'users' AND column_name = 'role'
+              AND udt_name = 'users_role_enum'
+          ) THEN
+            ALTER TABLE users ALTER COLUMN role DROP DEFAULT;
+            ALTER TABLE users ALTER COLUMN role TYPE varchar(20) USING role::text;
+            ALTER TABLE users ALTER COLUMN role SET DEFAULT 'employee';
+          END IF;
+        END $$;
+      `);
+      await this.usersRepo.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_id uuid;
+      `);
+      await this.usersRepo.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS users_customer_id_key
+          ON users (customer_id)
+          WHERE customer_id IS NOT NULL;
+      `);
+    } catch (err) {
+      this.logger.warn(`Customer portal schema migrate skipped: ${String(err)}`);
+    }
+
+    try {
+      const customers = await this.customersRepo.find();
+      for (const customer of customers) {
+        await this.usersService.ensureCustomerPortalUser(customer);
+      }
+      if (customers.length > 0) {
+        this.logger.log(`Customer portal logins ensured for ${customers.length} customers`);
+      }
+    } catch (err) {
+      this.logger.warn(`Customer portal backfill skipped: ${String(err)}`);
+    }
   }
 
   /** Permissions column for per-employee access (needed when TypeORM sync is off) */

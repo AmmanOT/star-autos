@@ -6,6 +6,7 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { Bill } from '../bills/entities/bill.entity';
 import { Payment } from '../payments/entities/payment.entity';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class CustomersService {
@@ -16,6 +17,7 @@ export class CustomersService {
     private readonly billsRepository: Repository<Bill>,
     @InjectRepository(Payment)
     private readonly paymentsRepository: Repository<Payment>,
+    private readonly usersService: UsersService,
   ) {}
 
   findAll(): Promise<Customer[]> {
@@ -38,17 +40,22 @@ export class CustomersService {
       balance: dto.balance ?? 0,
       creditLimit: dto.creditLimit ?? 0,
     });
-    return this.customersRepository.save(customer);
+    const saved = await this.customersRepository.save(customer);
+    await this.usersService.ensureCustomerPortalUser(saved);
+    return saved;
   }
 
   async update(id: string, dto: UpdateCustomerDto): Promise<Customer> {
     const customer = await this.findOne(id);
     Object.assign(customer, dto);
-    return this.customersRepository.save(customer);
+    const saved = await this.customersRepository.save(customer);
+    await this.usersService.ensureCustomerPortalUser(saved);
+    return saved;
   }
 
   async remove(id: string): Promise<void> {
     const customer = await this.findOne(id);
+    await this.usersService.deleteCustomerPortalUser(id);
     await this.customersRepository.remove(customer);
   }
 

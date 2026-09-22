@@ -109,8 +109,13 @@ export function BulkPrintBillsButton({
 
       {printQueue && printQueue.length > 0 && (
         <div id="bulk-print-root" className="fixed left-[-9999px] top-0" aria-hidden>
-          {printQueue.map((bill) => (
-            <ThermalReceipt key={bill.id} bill={bill} />
+          {printQueue.map((bill, i) => (
+            <ThermalReceipt
+              key={bill.id}
+              bill={bill}
+              continuation={i > 0}
+              showClosing={i === printQueue.length - 1}
+            />
           ))}
         </div>
       )}

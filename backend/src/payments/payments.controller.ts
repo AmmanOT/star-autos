@@ -13,6 +13,7 @@ import {
 } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { Permission } from '../common/enums';
+import { isCustomerUser } from '../common/customer-scope';
 
 @ApiTags('payments')
 @ApiBearerAuth()
@@ -23,7 +24,14 @@ export class PaymentsController {
   @Get()
   @ApiOperation({ summary: 'List payments' })
   @ApiQuery({ name: 'customerId', required: false })
-  findAll(@Query('customerId') customerId?: string) {
+  findAll(
+    @Query('customerId') customerId: string | undefined,
+    @CurrentUser() user: AuthUser,
+  ) {
+    if (isCustomerUser(user)) {
+      if (!user.customerId) return [];
+      return this.paymentsService.findAll(user.customerId);
+    }
     return this.paymentsService.findAll(customerId);
   }
 

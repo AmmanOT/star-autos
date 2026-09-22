@@ -19,10 +19,12 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
-import { Permission } from '../common/enums';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Permission, UserRole } from '../common/enums';
 
 @ApiTags('products')
 @ApiBearerAuth()
+@Roles(UserRole.ADMIN, UserRole.EMPLOYEE)
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}

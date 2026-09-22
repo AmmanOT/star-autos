@@ -71,7 +71,7 @@ export function SettingsPage() {
         <div className="space-y-2 text-sm">
           <p><span className="text-[var(--color-text-muted)]">{t('name')}:</span> {user?.name}</p>
           <p><span className="text-[var(--color-text-muted)]">{t('username')}:</span> {user?.username}</p>
-          <p><span className="text-[var(--color-text-muted)]">{t('type')}:</span> {isAdmin ? t('admin') : t('employee')}</p>
+          <p><span className="text-[var(--color-text-muted)]">{t('type')}:</span> {user?.role === 'customer' ? t('customer') : isAdmin ? t('admin') : t('employee')}</p>
         </div>
       </Card>
 

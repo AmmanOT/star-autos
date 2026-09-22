@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { User } from './entities/user.entity';
+import { DEFAULT_CUSTOMER_PASSWORD, User } from './entities/user.entity';
 import { ALL_PERMISSIONS, Permission, UserRole } from '../common/enums';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -70,6 +70,9 @@ export class UsersService {
     if (user.role === UserRole.ADMIN) {
       throw new ForbiddenException('Cannot edit the Super Admin from employee management');
     }
+    if (user.role === UserRole.CUSTOMER) {
+      throw new ForbiddenException('Cannot edit a customer login from employee management');
+    }
 
     if (dto.username) {
       const username = normalizeUsername(dto.username);
@@ -102,6 +105,9 @@ export class UsersService {
     if (user.role === UserRole.ADMIN) {
       throw new ForbiddenException('Cannot delete the Super Admin');
     }
+    if (user.role === UserRole.CUSTOMER) {
+      throw new ForbiddenException('Cannot delete a customer login from employee management');
+    }
     await this.usersRepository.remove(user);
   }
 
@@ -111,9 +117,85 @@ export class UsersService {
     await this.usersRepository.save(user);
   }
 
+  async findByCustomerId(customerId: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { customerId } });
+  }
+
+  async ensureCustomerPortalUser(customer: {
+    id: string;
+    name: string;
+    phone?: string | null;
+  }): Promise<User> {
+    const existing = await this.findByCustomerId(customer.id);
+    if (existing) {
+      const nextUsername = await this.uniqueCustomerUsername(
+        customer.name,
+        customer.id,
+        existing.id,
+      );
+      const nextName = customer.name.trim();
+      const nextPhone = customer.phone?.trim() || null;
+      if (
+        existing.name === nextName &&
+        existing.username === nextUsername &&
+        existing.phone === nextPhone
+      ) {
+        return existing;
+      }
+      existing.name = nextName;
+      existing.phone = nextPhone;
+      existing.username = nextUsername;
+      return this.usersRepository.save(existing);
+    }
+
+    const username = await this.uniqueCustomerUsername(customer.name, customer.id);
+    const user = this.usersRepository.create({
+      name: customer.name.trim() || username,
+      username,
+      passwordHash: await bcrypt.hash(DEFAULT_CUSTOMER_PASSWORD, 10),
+      role: UserRole.CUSTOMER,
+      phone: customer.phone?.trim() || null,
+      customerId: customer.id,
+      permissions: [],
+    });
+    return this.usersRepository.save(user);
+  }
+
+  async deleteCustomerPortalUser(customerId: string): Promise<void> {
+    const existing = await this.findByCustomerId(customerId);
+    if (existing) {
+      await this.usersRepository.remove(existing);
+    }
+  }
+
+  private async uniqueCustomerUsername(
+    name: string,
+    customerId: string,
+    excludeUserId?: string,
+  ): Promise<string> {
+    const base =
+      normalizeUsername(name).replace(/\s+/g, ' ').slice(0, 50) ||
+      `c-${customerId.replace(/-/g, '').slice(0, 10)}`;
+    let candidate = base.slice(0, 60);
+    let n = 2;
+    while (n < 1000) {
+      const existing = await this.findByUsername(candidate);
+      if (!existing || existing.id === excludeUserId) {
+        return candidate;
+      }
+      const suffix = `-${n}`;
+      candidate = `${base.slice(0, 60 - suffix.length)}${suffix}`;
+      n += 1;
+    }
+    return `c-${customerId.replace(/-/g, '').slice(0, 16)}`;
+  }
+
   effectivePermissions(user: User): Permission[] {
     if (user.role === UserRole.ADMIN) {
       return ALL_PERMISSIONS;
+    }
+    if (user.role === UserRole.CUSTOMER) {
+      return [];
     }
     return user.permissions ?? [];
   }
@@ -125,6 +207,7 @@ export class UsersService {
       username: user.username,
       role: user.role,
       phone: user.phone ?? undefined,
+      customerId: user.customerId ?? undefined,
       permissions: this.effectivePermissions(user),
     };
   }

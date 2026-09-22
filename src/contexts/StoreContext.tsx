@@ -94,13 +94,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const [products, customers, bills, payments] = await Promise.all([
-        productsApi.list(),
-        customersApi.list(),
-        billsApi.list(),
-        paymentsApi.list(),
-      ]);
-      setState({ products, customers, bills, payments });
+      if (user.role === 'customer') {
+        const [customers, bills, payments] = await Promise.all([
+          customersApi.list(),
+          billsApi.list(),
+          paymentsApi.list(),
+        ]);
+        setState({ products: [], customers, bills, payments });
+      } else {
+        const [products, customers, bills, payments] = await Promise.all([
+          productsApi.list(),
+          customersApi.list(),
+          billsApi.list(),
+          paymentsApi.list(),
+        ]);
+        setState({ products, customers, bills, payments });
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load data';
       setError(message);

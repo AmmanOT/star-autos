@@ -18,6 +18,7 @@ import {
 } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { Permission } from '../common/enums';
+import { assertCustomerCanAccess, isCustomerUser } from '../common/customer-scope';
 
 @ApiTags('bills')
 @ApiBearerAuth()
@@ -27,14 +28,23 @@ export class BillsController {
 
   @Get()
   @ApiOperation({ summary: 'List bills' })
-  findAll() {
+  findAll(@CurrentUser() user: AuthUser) {
+    if (isCustomerUser(user)) {
+      if (!user.customerId) return [];
+      return this.billsService.findAllByCustomer(user.customerId);
+    }
     return this.billsService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get bill by id' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.billsService.findOne(id);
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const bill = await this.billsService.findOne(id);
+    assertCustomerCanAccess(user, bill.customerId);
+    return bill;
   }
 
   @Post()

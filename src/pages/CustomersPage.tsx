@@ -56,6 +56,7 @@ export function CustomersPage() {
         <h1 className="text-2xl font-bold">{t('customers')}</h1>
         <Button icon={<Plus size={16} />} onClick={openAdd}>{t('addCustomer')}</Button>
       </div>
+      <p className="text-sm text-[var(--color-text-muted)] -mt-2">{t('customerPortalHint')}</p>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <SearchInput value={search} onChange={setSearch} placeholder={t('search')} className="flex-1" />

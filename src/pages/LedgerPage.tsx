@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Eye, Plus, Printer, Trash2 } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -10,16 +11,31 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { SearchInput } from '../components/ui/SearchInput';
 import { BulkPrintBillsButton } from '../components/billing/BulkPrintBills';
+import { ThermalReceipt } from '../components/billing/ThermalReceipt';
 import { formatPKR, formatDateShort } from '../utils/format';
 import { matchesSearch } from '../utils/search';
+import { printThermalReceipt } from '../utils/printReceipt';
+import type { Bill } from '../types';
 
 export function LedgerPage() {
   const { state, dispatch } = useStore();
+  const { user } = useAuth();
   const { t, lang } = useLanguage();
+  const isCustomer = user?.role === 'customer';
   const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(state.customers[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    isCustomer ? user?.customerId ?? state.customers[0]?.id ?? null : state.customers[0]?.id ?? null,
+  );
   const [paymentModal, setPaymentModal] = useState(false);
+  const [viewBill, setViewBill] = useState<Bill | null>(null);
   const [payForm, setPayForm] = useState({ amount: 0, type: 'received' as 'received' | 'paid', method: 'cash' as 'cash' | 'bank', notes: '' });
+
+  useEffect(() => {
+    if (isCustomer) {
+      const ownId = user?.customerId ?? state.customers[0]?.id ?? null;
+      setSelectedId(ownId);
+    }
+  }, [isCustomer, user?.customerId, state.customers]);
 
   const filteredCustomers = state.customers.filter((c) =>
     matchesSearch(search, c.name, c.nameUrdu, c.phone),
@@ -67,11 +83,116 @@ export function LedgerPage() {
     }
   };
 
+  const ledgerDetail = selected ? (
+    <>
+      <Card>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold">{lang === 'ur' ? selected.nameUrdu : selected.name}</h2>
+            <p className="text-sm text-[var(--color-text-muted)]">{selected.phone} · {selected.city}</p>
+          </div>
+          <div className="text-end">
+            <p className="text-sm text-[var(--color-text-muted)]">{t('balance')}</p>
+            <p className={`text-2xl font-bold ${selected.balance > 0 ? 'text-amber-600' : selected.balance < 0 ? 'text-blue-600' : 'text-emerald-600'}`}>
+              {formatPKR(Math.abs(selected.balance))}
+            </p>
+            <Badge variant={selected.balance > 0 ? 'warning' : selected.balance < 0 ? 'info' : 'success'}>
+              {selected.balance > 0 ? t('theyOweUs') : selected.balance < 0 ? t('weOweThem') : t('settled')}
+            </Badge>
+          </div>
+        </div>
+      </Card>
+
+      <Card title={t('billHistory')}>
+        {customerBills.length === 0 ? (
+          <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
+        ) : (
+          <div className="overflow-auto max-h-[min(50vh,420px)] -mx-5 -mb-5">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10 bg-[var(--color-surface)]">
+                <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
+                  <th className="text-start px-5 py-2">{t('billNumber')}</th>
+                  <th className="text-end px-3 py-2">{t('total')}</th>
+                  <th className="text-end px-3 py-2">{t('paid')}</th>
+                  <th className="text-end px-3 py-2">{t('due')}</th>
+                  <th className="text-end px-5 py-2">{t('date')}</th>
+                  <th className="text-end px-5 py-2">{t('actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customerBills.map((b) => (
+                  <tr key={b.id} className="border-b border-[var(--color-border)] last:border-0">
+                    <td className="px-5 py-3 font-medium">{b.billNumber}</td>
+                    <td className="px-3 py-3 text-end">{formatPKR(b.total)}</td>
+                    <td className="px-3 py-3 text-end">{formatPKR(b.paidAmount)}</td>
+                    <td className="px-3 py-3 text-end text-amber-600">{formatPKR(b.total - b.paidAmount)}</td>
+                    <td className="px-5 py-3 text-end text-[var(--color-text-muted)]">{formatDateShort(b.createdAt)}</td>
+                    <td className="px-5 py-3 text-end">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<Eye size={14} />}
+                          onClick={() => setViewBill(b)}
+                        />
+                        {!isCustomer && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Trash2 size={14} />}
+                            onClick={() => void handleDeleteBill(b.billNumber, b.id)}
+                          />
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Card title={t('logPayments')}>
+        {customerPayments.length === 0 ? (
+          <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
+        ) : (
+          <div className="space-y-2 max-h-[min(40vh,320px)] overflow-y-auto">
+            {customerPayments.map((p) => (
+              <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-elevated)]">
+                <div>
+                  <Badge variant={p.type === 'received' ? 'success' : 'info'}>
+                    {p.type === 'received' ? t('paymentReceived') : t('paymentPaid')}
+                  </Badge>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1">{formatDateShort(p.createdAt)} · {p.method}</p>
+                  {p.notes && <p className="text-xs mt-0.5">{p.notes}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold">{formatPKR(p.amount)}</span>
+                  {!isCustomer && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Trash2 size={14} />}
+                      onClick={() => void handleDeletePayment(p.id)}
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </>
+  ) : (
+    <Card><p className="text-[var(--color-text-muted)]">{t('selectCustomer')}</p></Card>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">{t('ledger')}</h1>
-        {selected && (
+        {selected && !isCustomer && (
           <div className="flex flex-wrap gap-2">
             <BulkPrintBillsButton defaultCustomerId={selected.id} />
             <Button icon={<Plus size={16} />} onClick={() => setPaymentModal(true)}>{t('addPayment')}</Button>
@@ -79,129 +200,38 @@ export function LedgerPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Customer list */}
-        <Card title={t('customers')}>
-          <SearchInput value={search} onChange={setSearch} placeholder={t('search')} className="mb-4" />
-          <div className="space-y-2 max-h-[60vh] overflow-y-auto -mx-2">
-            {filteredCustomers.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedId(c.id)}
-                className={`w-full text-start p-3 rounded-lg transition-colors border ${
-                  selectedId === c.id
-                    ? 'bg-brand-50 dark:bg-brand-800/80 border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/40 shadow-sm'
-                    : 'border-transparent hover:bg-[var(--color-surface-elevated)]'
-                }`}
-              >
-                <p className="font-medium">{lang === 'ur' ? c.nameUrdu : c.name}</p>
-                <div className="flex justify-between items-center mt-1">
-                  <span className="text-xs text-[var(--color-text-muted)]">{c.phone}</span>
-                  <Badge variant={c.balance > 0 ? 'warning' : c.balance < 0 ? 'info' : 'success'}>
-                    {formatPKR(Math.abs(c.balance))}
-                  </Badge>
-                </div>
-              </button>
-            ))}
-          </div>
-        </Card>
-
-        {/* Ledger detail */}
-        <div className="lg:col-span-2 space-y-4">
-          {selected ? (
-            <>
-              <Card>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-bold">{lang === 'ur' ? selected.nameUrdu : selected.name}</h2>
-                    <p className="text-sm text-[var(--color-text-muted)]">{selected.phone} · {selected.city}</p>
-                  </div>
-                  <div className="text-end">
-                    <p className="text-sm text-[var(--color-text-muted)]">{t('balance')}</p>
-                    <p className={`text-2xl font-bold ${selected.balance > 0 ? 'text-amber-600' : selected.balance < 0 ? 'text-blue-600' : 'text-emerald-600'}`}>
-                      {formatPKR(Math.abs(selected.balance))}
-                    </p>
-                    <Badge variant={selected.balance > 0 ? 'warning' : selected.balance < 0 ? 'info' : 'success'}>
-                      {selected.balance > 0 ? t('theyOweUs') : selected.balance < 0 ? t('weOweThem') : t('settled')}
+      {isCustomer ? (
+        <div className="space-y-4 max-w-4xl">{ledgerDetail}</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card title={t('customers')}>
+            <SearchInput value={search} onChange={setSearch} placeholder={t('search')} className="mb-4" />
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto -mx-2">
+              {filteredCustomers.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedId(c.id)}
+                  className={`w-full text-start p-3 rounded-lg transition-colors border ${
+                    selectedId === c.id
+                      ? 'bg-brand-50 dark:bg-brand-800/80 border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/40 shadow-sm'
+                      : 'border-transparent hover:bg-[var(--color-surface-elevated)]'
+                  }`}
+                >
+                  <p className="font-medium">{lang === 'ur' ? c.nameUrdu : c.name}</p>
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-xs text-[var(--color-text-muted)]">{c.phone}</span>
+                    <Badge variant={c.balance > 0 ? 'warning' : c.balance < 0 ? 'info' : 'success'}>
+                      {formatPKR(Math.abs(c.balance))}
                     </Badge>
                   </div>
-                </div>
-              </Card>
+                </button>
+              ))}
+            </div>
+          </Card>
 
-              <Card title={t('billHistory')}>
-                {customerBills.length === 0 ? (
-                  <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
-                ) : (
-                  <div className="overflow-auto max-h-[min(50vh,420px)] -mx-5 -mb-5">
-                    <table className="w-full text-sm">
-                      <thead className="sticky top-0 z-10 bg-[var(--color-surface)]">
-                        <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
-                          <th className="text-start px-5 py-2">{t('billNumber')}</th>
-                          <th className="text-end px-3 py-2">{t('total')}</th>
-                          <th className="text-end px-3 py-2">{t('paid')}</th>
-                          <th className="text-end px-3 py-2">{t('due')}</th>
-                          <th className="text-end px-5 py-2">{t('date')}</th>
-                          <th className="text-end px-5 py-2">{t('actions')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {customerBills.map((b) => (
-                          <tr key={b.id} className="border-b border-[var(--color-border)] last:border-0">
-                            <td className="px-5 py-3 font-medium">{b.billNumber}</td>
-                            <td className="px-3 py-3 text-end">{formatPKR(b.total)}</td>
-                            <td className="px-3 py-3 text-end">{formatPKR(b.paidAmount)}</td>
-                            <td className="px-3 py-3 text-end text-amber-600">{formatPKR(b.total - b.paidAmount)}</td>
-                            <td className="px-5 py-3 text-end text-[var(--color-text-muted)]">{formatDateShort(b.createdAt)}</td>
-                            <td className="px-5 py-3 text-end">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                icon={<Trash2 size={14} />}
-                                onClick={() => void handleDeleteBill(b.billNumber, b.id)}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </Card>
-
-              <Card title={t('logPayments')}>
-                {customerPayments.length === 0 ? (
-                  <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
-                ) : (
-                  <div className="space-y-2 max-h-[min(40vh,320px)] overflow-y-auto">
-                    {customerPayments.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-elevated)]">
-                        <div>
-                          <Badge variant={p.type === 'received' ? 'success' : 'info'}>
-                            {p.type === 'received' ? t('paymentReceived') : t('paymentPaid')}
-                          </Badge>
-                          <p className="text-xs text-[var(--color-text-muted)] mt-1">{formatDateShort(p.createdAt)} · {p.method}</p>
-                          {p.notes && <p className="text-xs mt-0.5">{p.notes}</p>}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold">{formatPKR(p.amount)}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            icon={<Trash2 size={14} />}
-                            onClick={() => void handleDeletePayment(p.id)}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            </>
-          ) : (
-            <Card><p className="text-[var(--color-text-muted)]">{t('selectCustomer')}</p></Card>
-          )}
+          <div className="lg:col-span-2 space-y-4">{ledgerDetail}</div>
         </div>
-      </div>
+      )}
 
       <Modal open={paymentModal} onClose={() => setPaymentModal(false)} title={t('addPayment')}>
         <div className="space-y-4">
@@ -227,6 +257,20 @@ export function LedgerPage() {
             <Button onClick={handlePayment}>{t('save')}</Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={!!viewBill} onClose={() => setViewBill(null)} title={viewBill?.billNumber ?? t('viewBill')} size="sm">
+        {viewBill && (
+          <div className="space-y-4">
+            <ThermalReceipt bill={viewBill} />
+            <div className="flex justify-end gap-2 no-print">
+              <Button variant="secondary" onClick={() => setViewBill(null)}>{t('cancel')}</Button>
+              {!isCustomer && (
+                <Button icon={<Printer size={16} />} onClick={() => printThermalReceipt()}>{t('printBill')}</Button>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

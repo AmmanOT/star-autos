@@ -23,11 +23,13 @@ export const PERMISSION_ROUTE: Record<Permission, string> = {
 export function hasPermission(user: User | null | undefined, permission: Permission): boolean {
   if (!user) return false;
   if (user.role === 'admin') return true;
+  if (user.role === 'customer') return permission === 'ledger';
   return user.permissions?.includes(permission) ?? false;
 }
 
 export function homePath(user: User | null | undefined): string {
   if (!user) return '/login';
+  if (user.role === 'customer') return '/admin/ledger';
   if (user.role === 'admin' || hasPermission(user, 'dashboard')) return '/admin';
   const first = PERMISSIONS.find((permission) => hasPermission(user, permission));
   return first ? PERMISSION_ROUTE[first] : '/admin/settings';

@@ -10,7 +10,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
-import { Permission } from '../common/enums';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Permission, UserRole } from '../common/enums';
 import { CatalogService } from './catalog.service';
 import {
   CreateBrandDto,
@@ -23,6 +24,7 @@ import {
 
 @ApiTags('catalog')
 @ApiBearerAuth()
+@Roles(UserRole.ADMIN, UserRole.EMPLOYEE)
 @Controller('catalog')
 export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}

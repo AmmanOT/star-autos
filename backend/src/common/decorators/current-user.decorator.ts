@@ -8,6 +8,7 @@ export interface AuthUser {
   role: string;
   name: string;
   permissions: Permission[];
+  customerId?: string | null;
 }
 
 export const CurrentUser = createParamDecorator(

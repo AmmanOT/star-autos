@@ -6,6 +6,8 @@ import {
 } from 'typeorm';
 import { Permission, UserRole } from '../../common/enums';
 
+export const DEFAULT_CUSTOMER_PASSWORD = '123456789';
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -20,11 +22,14 @@ export class User {
   @Column({ name: 'password_hash', type: 'varchar', length: 255 })
   passwordHash: string;
 
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.EMPLOYEE })
+  @Column({ type: 'varchar', length: 20, default: UserRole.EMPLOYEE })
   role: UserRole;
 
   @Column({ type: 'varchar', length: 30, nullable: true })
   phone: string | null;
+
+  @Column({ name: 'customer_id', type: 'uuid', nullable: true, unique: true })
+  customerId: string | null;
 
   @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
   permissions: Permission[];

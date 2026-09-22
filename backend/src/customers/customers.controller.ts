@@ -13,7 +13,15 @@ import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import {
+  CurrentUser,
+  AuthUser,
+} from '../common/decorators/current-user.decorator';
 import { Permission } from '../common/enums';
+import {
+  assertCustomerCanAccess,
+  isCustomerUser,
+} from '../common/customer-scope';
 
 @ApiTags('customers')
 @ApiBearerAuth()
@@ -23,19 +31,28 @@ export class CustomersController {
 
   @Get()
   @ApiOperation({ summary: 'List customers' })
-  findAll() {
+  findAll(@CurrentUser() user: AuthUser) {
+    if (isCustomerUser(user)) {
+      if (!user.customerId) return [];
+      return this.customersService.findOne(user.customerId).then((c) => [c]);
+    }
     return this.customersService.findAll();
   }
 
   @Get(':id/ledger')
   @ApiOperation({ summary: 'Customer ledger (bills + payments)' })
-  getLedger(@Param('id', ParseUUIDPipe) id: string) {
+  getLedger(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    assertCustomerCanAccess(user, id);
     return this.customersService.getLedger(id);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get customer by id' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    assertCustomerCanAccess(user, id);
     return this.customersService.findOne(id);
   }
 

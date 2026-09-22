@@ -28,6 +28,13 @@ export class BillsService {
     });
   }
 
+  findAllByCustomer(customerId: string): Promise<Bill[]> {
+    return this.billsRepository.find({
+      where: { customerId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   async findOne(id: string): Promise<Bill> {
     const bill = await this.billsRepository.findOne({ where: { id } });
     if (!bill) {

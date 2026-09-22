@@ -92,5 +92,7 @@ export function useAuth() {
 }
 
 export function roleLabel(role: UserRole, t: (k: import('../i18n/translations').TranslationKey) => string) {
-  return role === 'admin' ? t('admin') : t('employee');
+  if (role === 'admin') return t('admin');
+  if (role === 'customer') return t('customer');
+  return t('employee');
 }

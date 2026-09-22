@@ -61,7 +61,7 @@ export function LoginPage() {
           <form onSubmit={handleSubmit} className="px-5 sm:px-8 pb-7 pt-1 space-y-4">
             <div className="text-center mb-1">
               <h1 className="font-display text-lg font-semibold tracking-[0.14em] text-[var(--color-text)] uppercase">
-                {t('staffLogin')}
+                {t('login')}
               </h1>
             </div>
 

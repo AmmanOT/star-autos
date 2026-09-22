@@ -9,6 +9,7 @@ import { Brand } from '../catalog/entities/brand.entity';
 import { Category } from '../catalog/entities/category.entity';
 import { Vehicle } from '../catalog/entities/vehicle.entity';
 import { SeedService } from './seed.service';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SeedService } from './seed.service';
       Category,
       Vehicle,
     ]),
+    UsersModule,
   ],
   providers: [SeedService],
   exports: [SeedService],

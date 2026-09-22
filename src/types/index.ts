@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'employee';
+export type UserRole = 'admin' | 'employee' | 'customer';
 
 export type Permission =
   | 'dashboard'
@@ -97,6 +97,7 @@ export interface User {
   username: string;
   role: UserRole;
   phone?: string;
+  customerId?: string;
   permissions: Permission[];
 }
 

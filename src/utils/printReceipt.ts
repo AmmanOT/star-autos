@@ -92,9 +92,12 @@ const RECEIPT_PRINT_CSS = `
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
-  .receipt-page-break {
-    page-break-after: always;
-    break-after: page;
+  .receipt-bill-sep {
+    margin: 6px;
+  }
+  .receipt-stack {
+    page-break-after: auto;
+    break-after: auto;
   }
 `;
 
@@ -138,7 +141,7 @@ export function printThermalReceipts(sources: Element[]) {
 
   sources.forEach((source, i) => {
     const clone = source.cloneNode(true) as HTMLElement;
-    if (i < sources.length - 1) clone.classList.add('receipt-page-break');
+    if (i < sources.length - 1) clone.classList.add('receipt-stack');
     doc.body.appendChild(clone);
   });
 

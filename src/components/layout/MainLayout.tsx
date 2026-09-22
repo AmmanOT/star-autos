@@ -36,6 +36,7 @@ export function MainLayout() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isCustomer = user?.role === 'customer';
   const [privacyOn, setPrivacyOn] = useState(
     () => typeof sessionStorage !== 'undefined' && sessionStorage.getItem('privacy-blur') === '1',
   );
@@ -92,7 +93,7 @@ export function MainLayout() {
         </nav>
 
         <div className="p-4 border-t border-[var(--color-border)] space-y-3">
-          {!isAdmin && (
+          {!isAdmin && !isCustomer && (
             <p className="text-xs text-amber-600 dark:text-amber-400 px-1">{t('limitedAccess')}</p>
           )}
           <div className="flex items-center gap-2 px-1">
@@ -101,7 +102,9 @@ export function MainLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user?.name}</p>
-              <Badge variant={isAdmin ? 'info' : 'default'}>{isAdmin ? t('admin') : t('employee')}</Badge>
+              <Badge variant={isAdmin ? 'info' : 'default'}>
+                {isAdmin ? t('admin') : isCustomer ? t('customer') : t('employee')}
+              </Badge>
             </div>
           </div>
         </div>
@@ -134,6 +137,7 @@ export function MainLayout() {
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
+            {!isCustomer && (
             <button
               onClick={togglePrivacy}
               className={`p-2 rounded-lg border ${
@@ -146,6 +150,7 @@ export function MainLayout() {
             >
               {privacyOn ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
+            )}
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
