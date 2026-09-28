@@ -1,5 +1,7 @@
 import type { Permission, User } from '../types';
 
+export type PagePermission = Exclude<Permission, 'edit' | 'delete'>;
+
 export const PERMISSIONS: Permission[] = [
   'dashboard',
   'inventory',
@@ -12,13 +14,13 @@ export const PERMISSIONS: Permission[] = [
   'delete',
 ];
 
-export const ADMIN_ONLY_PERMISSIONS: Permission[] = [
+export const ADMIN_ONLY_PERMISSIONS: PagePermission[] = [
   'dashboard',
   'reports',
   'activityLogs',
 ];
 
-export const EMPLOYEE_SECTION_PERMISSIONS: Permission[] = [
+export const EMPLOYEE_SECTION_PERMISSIONS: PagePermission[] = [
   'inventory',
   'customers',
   'billing',
@@ -32,7 +34,7 @@ export const EMPLOYEE_PERMISSIONS: Permission[] = [
   ...EMPLOYEE_ACTION_PERMISSIONS,
 ];
 
-export const PERMISSION_ROUTE: Record<Exclude<Permission, 'edit' | 'delete'>, string> = {
+export const PERMISSION_ROUTE: Record<PagePermission, string> = {
   dashboard: '/admin',
   inventory: '/admin/inventory',
   customers: '/admin/customers',
@@ -46,7 +48,7 @@ export function hasPermission(user: User | null | undefined, permission: Permiss
   if (!user) return false;
   if (user.role === 'admin') return true;
   if (user.role === 'customer') return permission === 'ledger';
-  if (ADMIN_ONLY_PERMISSIONS.includes(permission)) return false;
+  if ((ADMIN_ONLY_PERMISSIONS as Permission[]).includes(permission)) return false;
   return user.permissions?.includes(permission) ?? false;
 }
 

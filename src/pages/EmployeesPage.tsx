@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { usersApi } from '../api';
-import { EMPLOYEE_ACTION_PERMISSIONS, EMPLOYEE_SECTION_PERMISSIONS } from '../constants/permissions';
+import {
+  EMPLOYEE_ACTION_PERMISSIONS,
+  EMPLOYEE_PERMISSIONS,
+  EMPLOYEE_SECTION_PERMISSIONS,
+} from '../constants/permissions';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import type { Permission, User } from '../types';
@@ -74,10 +78,8 @@ export function EmployeesPage() {
       password: '',
       confirmPassword: '',
       phone: employee.phone ?? '',
-      permissions: [...(employee.permissions ?? [])].filter(
-        (permission) =>
-          EMPLOYEE_SECTION_PERMISSIONS.includes(permission) ||
-          EMPLOYEE_ACTION_PERMISSIONS.includes(permission),
+      permissions: [...(employee.permissions ?? [])].filter((permission) =>
+        EMPLOYEE_PERMISSIONS.includes(permission),
       ),
     });
     setError('');
