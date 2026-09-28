@@ -8,9 +8,174 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+      #boot-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(1200px 700px at 50% -10%, #12345a 0%, #061222 58%, #040d1a 100%);
+        color: #f8fafc;
+        font-family: Barlow, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      #boot-screen.is-done {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.38s ease;
+      }
+      .boot-card {
+        width: min(92vw, 340px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      .boot-logo {
+        width: 92px;
+        height: 92px;
+        padding: 10px;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+        margin-bottom: 22px;
+      }
+      .boot-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .boot-name {
+        margin: 0;
+        font-family: "Barlow Condensed", Barlow, sans-serif;
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .boot-tag {
+        margin: 6px 0 28px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: #93b4d4;
+      }
+      .boot-track {
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        overflow: hidden;
+      }
+      .boot-bar {
+        height: 100%;
+        width: 0%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #c8102e, #ff4d6a);
+        transform: translateZ(0);
+        will-change: width;
+      }
+      .boot-pct {
+        margin-top: 12px;
+        font-family: "Barlow Condensed", Barlow, sans-serif;
+        font-size: 1.75rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.04em;
+        color: #fff;
+      }
+      .boot-pct span {
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        color: #93b4d4;
+        margin-left: 2px;
+      }
+      @media print {
+        #boot-screen { display: none !important; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-screen.is-done { transition: none; }
+        .boot-bar { transition: none; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="boot-screen" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Loading Madina Traders">
+      <div class="boot-card">
+        <div class="boot-logo">
+          <img src="/brand/madina-traders-logo.png" alt="" />
+        </div>
+        <p class="boot-name">Madina Traders</p>
+        <p class="boot-tag">Auto Spare Parts</p>
+        <div class="boot-track">
+          <div id="boot-bar" class="boot-bar"></div>
+        </div>
+        <div id="boot-pct" class="boot-pct">0<span>%</span></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var screen = document.getElementById('boot-screen');
+        var bar = document.getElementById('boot-bar');
+        var pct = document.getElementById('boot-pct');
+        var value = 0;
+        var target = 86;
+        var ready = false;
+        var closed = false;
+        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function paint(n) {
+          var shown = Math.max(0, Math.min(100, Math.round(n)));
+          bar.style.width = shown + '%';
+          pct.innerHTML = shown + '<span>%</span>';
+          screen.setAttribute('aria-valuenow', String(shown));
+        }
+
+        function close() {
+          if (closed) return;
+          closed = true;
+          paint(100);
+          screen.classList.add('is-done');
+          setTimeout(function () {
+            if (screen && screen.parentNode) screen.parentNode.removeChild(screen);
+          }, reduced ? 0 : 420);
+        }
+
+        function tick() {
+          if (closed) return;
+          var ease = ready ? 0.22 : 0.055;
+          value += (target - value) * ease;
+          if (ready && value >= 99.4) {
+            close();
+            return;
+          }
+          paint(value);
+          requestAnimationFrame(tick);
+        }
+
+        window.__bootMark = function (n) {
+          if (ready || closed) return;
+          target = Math.max(target, Math.min(92, n));
+        };
+
+        window.__finishBoot = function () {
+          if (closed) return;
+          ready = true;
+          target = 100;
+          if (reduced) close();
+        };
+
+        requestAnimationFrame(tick);
+        setTimeout(function () {
+          if (!ready) window.__finishBoot();
+        }, 12000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

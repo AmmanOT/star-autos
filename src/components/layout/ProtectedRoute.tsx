@@ -11,13 +11,7 @@ export function ProtectedRoute({
   permission?: Permission;
 }) {
   const { user, isAdmin, hasPermission, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
-        Loading…
-      </div>
-    );
-  }
+  if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && !isAdmin) return <Navigate to={homePath(user)} replace />;
   if (permission && !hasPermission(permission)) return <Navigate to={homePath(user)} replace />;
@@ -26,13 +20,7 @@ export function ProtectedRoute({
 
 export function PublicRoute() {
   const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
-        Loading…
-      </div>
-    );
-  }
+  if (loading) return null;
   if (user) return <Navigate to={homePath(user)} replace />;
   return <Outlet />;
 }

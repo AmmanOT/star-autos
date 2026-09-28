@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
+    window.__bootMark?.(92);
     authApi
       .me()
       .then(setUser)
@@ -44,6 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!loading) window.__finishBoot?.();
+  }, [loading]);
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await authApi.login(username, password);
