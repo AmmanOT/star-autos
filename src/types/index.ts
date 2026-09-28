@@ -7,7 +7,9 @@ export type Permission =
   | 'billing'
   | 'ledger'
   | 'reports'
-  | 'activityLogs';
+  | 'activityLogs'
+  | 'edit'
+  | 'delete';
 
 export type CustomerType = 'workshop' | 'retail' | 'wholesaler';
 

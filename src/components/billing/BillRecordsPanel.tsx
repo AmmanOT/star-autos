@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { Eye, Pencil, Trash2, Printer, MessageCircle, Plus, Minus } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePrivacy } from '../../contexts/PrivacyContext';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
@@ -33,6 +35,10 @@ interface CartItem extends BillItem {
 export function BillRecordsPanel() {
   const { state, dispatch } = useStore();
   const { t } = useLanguage();
+  const { isAdmin, hasPermission } = useAuth();
+  const { hideFinancials } = usePrivacy();
+  const canEdit = hasPermission('edit');
+  const canDelete = hasPermission('delete');
 
   const [search, setSearch] = useState('');
   const [customerFilter, setCustomerFilter] = useState('all');
@@ -110,7 +116,7 @@ export function BillRecordsPanel() {
                 <th className="text-start px-3 py-2">{t('customer')}</th>
                 <th className="text-start px-3 py-2">{t('items')}</th>
                 <th className="text-end px-3 py-2">{t('total')}</th>
-                <th className="text-end px-3 py-2">{t('profit')}</th>
+                {isAdmin && !hideFinancials && <th className="text-end px-3 py-2">{t('profit')}</th>}
                 <th className="text-end px-3 py-2">{t('paid')}</th>
                 <th className="text-end px-3 py-2">{t('due')}</th>
                 <th className="text-start px-3 py-2">{t('paymentMethod')}</th>
@@ -127,7 +133,9 @@ export function BillRecordsPanel() {
                     <td className="px-3 py-3">{bill.customerName ?? t('walkIn')}</td>
                     <td className="px-3 py-3 text-[var(--color-text-muted)]">{bill.items.length}</td>
                     <td className="px-3 py-3 text-end font-medium">{formatPKR(bill.total)}</td>
-                    <td className="px-3 py-3 text-end font-medium text-emerald-600">{formatPKR(billProfit(bill, state.products))}</td>
+                    {isAdmin && !hideFinancials && (
+                      <td className="px-3 py-3 text-end font-medium text-emerald-600">{formatPKR(billProfit(bill, state.products))}</td>
+                    )}
                     <td className="px-3 py-3 text-end">{formatPKR(bill.paidAmount)}</td>
                     <td className="px-3 py-3 text-end">
                       {due > 0 ? <span className="text-amber-600 font-medium">{formatPKR(due)}</span> : '—'}
@@ -137,8 +145,12 @@ export function BillRecordsPanel() {
                     <td className="px-5 py-3">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="sm" icon={<Eye size={14} />} onClick={() => openView(bill)} title={t('viewBill')} />
-                        <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => openEdit(bill)} title={t('editBill')} />
-                        <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => handleDelete(bill)} title={t('deleteBill')} />
+                        {canEdit && (
+                          <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => openEdit(bill)} title={t('editBill')} />
+                        )}
+                        {canDelete && (
+                          <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => handleDelete(bill)} title={t('deleteBill')} />
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -176,6 +188,9 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
 }) {
   const { state, dispatch } = useStore();
   const { t, lang } = useLanguage();
+  const { isAdmin, hasPermission } = useAuth();
+  const { hideFinancials } = usePrivacy();
+  const canEdit = hasPermission('edit');
   const isEdit = mode === 'edit';
 
   const [customerId, setCustomerId] = useState(bill.customerId ?? '');
@@ -387,13 +402,15 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
             <div><span className="text-[var(--color-text-muted)]">{t('date')}: </span>{formatDate(bill.createdAt)}</div>
             <div><span className="text-[var(--color-text-muted)]">{t('customer')}: </span>{bill.customerName ?? t('walkIn')}</div>
             <div><span className="text-[var(--color-text-muted)]">{t('paymentMethod')}: </span>{paymentLabel(bill.paymentMethod)}</div>
-            <div><span className="text-[var(--color-text-muted)]">{t('profit')}: </span><span className="font-medium text-emerald-600">{formatPKR(billProfit(bill, state.products))}</span></div>
+            {isAdmin && !hideFinancials && (
+              <div><span className="text-[var(--color-text-muted)]">{t('profit')}: </span><span className="font-medium text-emerald-600">{formatPKR(billProfit(bill, state.products))}</span></div>
+            )}
           </div>
           <ThermalReceipt bill={bill} />
           <div className="flex flex-wrap gap-2 mt-4 justify-center no-print">
             <Button variant="secondary" icon={<Printer size={16} />} onClick={handlePrint}>{t('printBill')}</Button>
             <Button variant="success" icon={<MessageCircle size={16} />} onClick={handleWhatsApp}>{t('shareWhatsApp')}</Button>
-            {mode === 'view' && <Button icon={<Pencil size={16} />} onClick={onSwitchToEdit}>{t('editBill')}</Button>}
+            {mode === 'view' && canEdit && <Button icon={<Pencil size={16} />} onClick={onSwitchToEdit}>{t('editBill')}</Button>}
           </div>
         </>
       )}

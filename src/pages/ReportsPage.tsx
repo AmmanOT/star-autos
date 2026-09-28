@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { usePrivacy } from '../contexts/PrivacyContext';
 import { categoryLabel } from '../i18n/translations';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
@@ -12,6 +13,7 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 export function ReportsPage() {
   const { state } = useStore();
   const { t, lang } = useLanguage();
+  const { hideFinancials } = usePrivacy();
   const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -131,11 +133,13 @@ export function ReportsPage() {
         </div>
       </div>
 
+      {!hideFinancials && (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card><p className="text-sm text-[var(--color-text-muted)]">{t('revenue')}</p><p className="text-2xl font-bold mt-1">{formatPKR(totalRevenue)}</p></Card>
         <Card><p className="text-sm text-[var(--color-text-muted)]">{t('profit')}</p><p className="text-2xl font-bold mt-1 text-emerald-600">{formatPKR(totalProfit)}</p></Card>
         <Card><p className="text-sm text-[var(--color-text-muted)]">{t('sales')}</p><p className="text-2xl font-bold mt-1">{filteredBills.length} bills</p></Card>
       </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title={t('salesTrend')}>

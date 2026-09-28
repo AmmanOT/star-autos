@@ -9,7 +9,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { RequireAllPermissions, RequirePermissions } from '../common/decorators/permissions.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Permission, UserRole } from '../common/enums';
 import { CatalogService } from './catalog.service';
@@ -43,12 +43,14 @@ export class CatalogController {
 
   @Patch('brands/:id')
   @RequirePermissions(Permission.INVENTORY)
+  @RequireAllPermissions(Permission.EDIT)
   updateBrand(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateBrandDto) {
     return this.catalogService.updateBrand(id, dto);
   }
 
   @Delete('brands/:id')
   @RequirePermissions(Permission.INVENTORY)
+  @RequireAllPermissions(Permission.DELETE)
   async removeBrand(@Param('id', ParseUUIDPipe) id: string) {
     await this.catalogService.removeBrand(id);
     return { success: true };
@@ -68,6 +70,7 @@ export class CatalogController {
 
   @Patch('categories/:id')
   @RequirePermissions(Permission.INVENTORY)
+  @RequireAllPermissions(Permission.EDIT)
   updateCategory(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCategoryDto,
@@ -77,6 +80,7 @@ export class CatalogController {
 
   @Delete('categories/:id')
   @RequirePermissions(Permission.INVENTORY)
+  @RequireAllPermissions(Permission.DELETE)
   async removeCategory(@Param('id', ParseUUIDPipe) id: string) {
     await this.catalogService.removeCategory(id);
     return { success: true };
@@ -96,6 +100,7 @@ export class CatalogController {
 
   @Patch('vehicles/:id')
   @RequirePermissions(Permission.INVENTORY)
+  @RequireAllPermissions(Permission.EDIT)
   updateVehicle(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateVehicleDto,
@@ -105,6 +110,7 @@ export class CatalogController {
 
   @Delete('vehicles/:id')
   @RequirePermissions(Permission.INVENTORY)
+  @RequireAllPermissions(Permission.DELETE)
   async removeVehicle(@Param('id', ParseUUIDPipe) id: string) {
     await this.catalogService.removeVehicle(id);
     return { success: true };

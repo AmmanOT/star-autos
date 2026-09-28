@@ -5,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
+import { PERMISSIONS_ALL_KEY, PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { AuthUser } from '../decorators/current-user.decorator';
 import { Permission, UserRole } from '../enums';
 
@@ -14,12 +14,16 @@ export class PermissionsGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const required = this.reflector.getAllAndOverride<Permission[]>(PERMISSIONS_KEY, [
+    const requiredAny = this.reflector.getAllAndOverride<Permission[]>(PERMISSIONS_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    const requiredAll = this.reflector.getAllAndOverride<Permission[]>(PERMISSIONS_ALL_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    if (!required || required.length === 0) {
+    if ((!requiredAny || requiredAny.length === 0) && (!requiredAll || requiredAll.length === 0)) {
       return true;
     }
 
@@ -35,8 +39,12 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const granted = user.permissions ?? [];
-    const allowed = required.some((permission) => granted.includes(permission));
-    if (!allowed) {
+
+    if (requiredAny?.length && !requiredAny.some((permission) => granted.includes(permission))) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    if (requiredAll?.length && !requiredAll.every((permission) => granted.includes(permission))) {
       throw new ForbiddenException('Insufficient permissions');
     }
 

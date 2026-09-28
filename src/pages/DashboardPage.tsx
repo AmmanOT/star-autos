@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Package, Users, Receipt, AlertTriangle, TrendingUp, ArrowRight } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { usePrivacy } from '../contexts/PrivacyContext';
 import { StatCard, Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { formatPKR, formatDateShort, isLowStock } from '../utils/format';
@@ -9,6 +10,7 @@ import { formatPKR, formatDateShort, isLowStock } from '../utils/format';
 export function DashboardPage() {
   const { state } = useStore();
   const { t, lang } = useLanguage();
+  const { hideFinancials } = usePrivacy();
 
   const today = new Date().toDateString();
   const todayBills = state.bills.filter((b) => new Date(b.createdAt).toDateString() === today);
@@ -27,10 +29,14 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard label={t('todaySales')} value={formatPKR(todaySales)} icon={<TrendingUp size={20} />} trend={`${todayBills.length} bills today`} />
+        {!hideFinancials && (
+          <StatCard label={t('todaySales')} value={formatPKR(todaySales)} icon={<TrendingUp size={20} />} trend={`${todayBills.length} bills today`} />
+        )}
         <StatCard label={t('totalProducts')} value={String(state.products.length)} icon={<Package size={20} />} />
         <StatCard label={t('totalCustomers')} value={String(state.customers.length)} icon={<Users size={20} />} />
-        <StatCard label={t('pendingDues')} value={formatPKR(pendingDues)} icon={<Receipt size={20} />} />
+        {!hideFinancials && (
+          <StatCard label={t('pendingDues')} value={formatPKR(pendingDues)} icon={<Receipt size={20} />} />
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -82,7 +88,9 @@ export function DashboardPage() {
 
           <Card>
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between"><span className="text-[var(--color-text-muted)]">{t('inventoryValue')}</span><span className="font-semibold">{formatPKR(inventoryValue)}</span></div>
+              {!hideFinancials && (
+                <div className="flex justify-between"><span className="text-[var(--color-text-muted)]">{t('inventoryValue')}</span><span className="font-semibold">{formatPKR(inventoryValue)}</span></div>
+              )}
               <div className="flex justify-between"><span className="text-[var(--color-text-muted)]">{t('billsThisMonth')}</span><span className="font-semibold">{billsThisMonth.length}</span></div>
               <div className="flex justify-between items-center">
                 <span className="text-[var(--color-text-muted)]">{t('lowStock')}</span>

@@ -12,7 +12,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { RequireAllPermissions, RequirePermissions } from '../common/decorators/permissions.decorator';
 import {
   CurrentUser,
   AuthUser,
@@ -65,6 +65,7 @@ export class CustomersController {
 
   @Patch(':id')
   @RequirePermissions(Permission.CUSTOMERS)
+  @RequireAllPermissions(Permission.EDIT)
   @ApiOperation({ summary: 'Update customer' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -75,6 +76,7 @@ export class CustomersController {
 
   @Delete(':id')
   @RequirePermissions(Permission.CUSTOMERS)
+  @RequireAllPermissions(Permission.DELETE)
   @ApiOperation({ summary: 'Delete customer' })
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.customersService.remove(id);

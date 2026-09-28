@@ -16,7 +16,7 @@ import {
   CurrentUser,
   AuthUser,
 } from '../common/decorators/current-user.decorator';
-import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { RequireAllPermissions, RequirePermissions } from '../common/decorators/permissions.decorator';
 import { Permission } from '../common/enums';
 import { assertCustomerCanAccess, isCustomerUser } from '../common/customer-scope';
 
@@ -56,6 +56,7 @@ export class BillsController {
 
   @Patch(':id')
   @RequirePermissions(Permission.BILLING)
+  @RequireAllPermissions(Permission.EDIT)
   @ApiOperation({
     summary: 'Update bill (reverses then reapplies stock/balance)',
   })
@@ -69,6 +70,7 @@ export class BillsController {
 
   @Delete(':id')
   @RequirePermissions(Permission.BILLING)
+  @RequireAllPermissions(Permission.DELETE)
   @ApiOperation({ summary: 'Delete bill (reverses stock/balance)' })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,

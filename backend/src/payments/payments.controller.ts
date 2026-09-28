@@ -11,7 +11,7 @@ import {
   CurrentUser,
   AuthUser,
 } from '../common/decorators/current-user.decorator';
-import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { RequireAllPermissions, RequirePermissions } from '../common/decorators/permissions.decorator';
 import { Permission } from '../common/enums';
 import { isCustomerUser } from '../common/customer-scope';
 
@@ -44,6 +44,7 @@ export class PaymentsController {
 
   @Delete(':id')
   @RequirePermissions(Permission.LEDGER)
+  @RequireAllPermissions(Permission.DELETE)
   @ApiOperation({ summary: 'Delete payment and restore customer balance' })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, Phone } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import type { Customer, CustomerType } from '../types';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -15,6 +16,9 @@ import { matchesSearch } from '../utils/search';
 export function CustomersPage() {
   const { state, dispatch } = useStore();
   const { t, lang } = useLanguage();
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('edit');
+  const canDelete = hasPermission('delete');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
@@ -84,8 +88,12 @@ export function CustomersPage() {
                   <span className="mt-1 inline-block"><Badge variant="default">{typeLabel(c.type)}</Badge></span>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => openEdit(c)} />
-                  <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => void handleDelete(c.id)} />
+                  {canEdit && (
+                    <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => openEdit(c)} />
+                  )}
+                  {canDelete && (
+                    <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => void handleDelete(c.id)} />
+                  )}
                 </div>
               </div>
               <div className="mt-4 space-y-2 text-sm">

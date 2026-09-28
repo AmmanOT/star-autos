@@ -19,9 +19,10 @@ import type { Bill } from '../types';
 
 export function LedgerPage() {
   const { state, dispatch } = useStore();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { t, lang } = useLanguage();
   const isCustomer = user?.role === 'customer';
+  const canDelete = hasPermission('delete');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(
     isCustomer ? user?.customerId ?? state.customers[0]?.id ?? null : state.customers[0]?.id ?? null,
@@ -135,7 +136,7 @@ export function LedgerPage() {
                           icon={<Eye size={14} />}
                           onClick={() => setViewBill(b)}
                         />
-                        {!isCustomer && (
+                        {!isCustomer && canDelete && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -169,7 +170,7 @@ export function LedgerPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold">{formatPKR(p.amount)}</span>
-                  {!isCustomer && (
+                  {!isCustomer && canDelete && (
                     <Button
                       variant="ghost"
                       size="sm"

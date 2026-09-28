@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { usersApi } from '../api';
-import { PERMISSIONS } from '../constants/permissions';
+import { EMPLOYEE_ACTION_PERMISSIONS, EMPLOYEE_SECTION_PERMISSIONS } from '../constants/permissions';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import type { Permission, User } from '../types';
@@ -29,6 +29,8 @@ const PERMISSION_LABEL: Record<Permission, TranslationKey> = {
   ledger: 'ledger',
   reports: 'reports',
   activityLogs: 'activityLogs',
+  edit: 'permEdit',
+  delete: 'permDelete',
 };
 
 export function EmployeesPage() {
@@ -72,7 +74,11 @@ export function EmployeesPage() {
       password: '',
       confirmPassword: '',
       phone: employee.phone ?? '',
-      permissions: [...(employee.permissions ?? [])],
+      permissions: [...(employee.permissions ?? [])].filter(
+        (permission) =>
+          EMPLOYEE_SECTION_PERMISSIONS.includes(permission) ||
+          EMPLOYEE_ACTION_PERMISSIONS.includes(permission),
+      ),
     });
     setError('');
     setModalOpen(true);
@@ -183,7 +189,7 @@ export function EmployeesPage() {
                           <Badge>{t('noAccess')}</Badge>
                         )}
                         {(employee.permissions ?? []).map((permission) => (
-                          <Badge key={permission} variant="info">{t(PERMISSION_LABEL[permission])}</Badge>
+                          <Badge key={permission} variant="info">{t(PERMISSION_LABEL[permission] ?? 'noAccess')}</Badge>
                         ))}
                       </div>
                     </td>
@@ -252,8 +258,33 @@ export function EmployeesPage() {
           <div>
             <p className="text-sm font-medium text-[var(--color-text-muted)] mb-2">{t('permissions')}</p>
             <p className="text-xs text-[var(--color-text-muted)] mb-3">{t('permissionsHint')}</p>
+            <p className="text-xs font-semibold text-[var(--color-text-muted)] mb-2">{t('permSections')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+              {EMPLOYEE_SECTION_PERMISSIONS.map((permission) => {
+                const checked = form.permissions.includes(permission);
+                return (
+                  <label
+                    key={permission}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer ${
+                      checked
+                        ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/30'
+                        : 'border-[var(--color-border)]'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => togglePermission(permission)}
+                      className="rounded border-[var(--color-border)]"
+                    />
+                    <span className="text-sm">{t(PERMISSION_LABEL[permission])}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-xs font-semibold text-[var(--color-text-muted)] mb-2">{t('permActions')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {PERMISSIONS.map((permission) => {
+              {EMPLOYEE_ACTION_PERMISSIONS.map((permission) => {
                 const checked = form.permissions.includes(permission);
                 return (
                   <label

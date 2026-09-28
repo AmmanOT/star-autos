@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { usePrivacy } from '../../contexts/PrivacyContext';
 import { Badge } from '../ui/Badge';
 import { BrandLogo } from '../brand/BrandLogo';
 import type { Permission } from '../../types';
@@ -19,13 +20,13 @@ const navLinks: {
   permission?: Permission;
   adminOnly?: boolean;
 }[] = [
-  { to: '/admin', icon: LayoutDashboard, key: 'dashboard', permission: 'dashboard' },
+  { to: '/admin', icon: LayoutDashboard, key: 'dashboard', adminOnly: true },
   { to: '/admin/inventory', icon: Package, key: 'inventory', permission: 'inventory' },
   { to: '/admin/customers', icon: Users, key: 'customers', permission: 'customers' },
   { to: '/admin/billing', icon: Receipt, key: 'billing', permission: 'billing' },
   { to: '/admin/ledger', icon: BookOpen, key: 'ledger', permission: 'ledger' },
-  { to: '/admin/reports', icon: BarChart3, key: 'reports', permission: 'reports' },
-  { to: '/admin/activity-logs', icon: ScrollText, key: 'activityLogs', permission: 'activityLogs' },
+  { to: '/admin/reports', icon: BarChart3, key: 'reports', adminOnly: true },
+  { to: '/admin/activity-logs', icon: ScrollText, key: 'activityLogs', adminOnly: true },
   { to: '/admin/employees', icon: UserCog, key: 'employees', adminOnly: true },
   { to: '/admin/settings', icon: Settings, key: 'settings' },
 ];
@@ -34,20 +35,10 @@ export function MainLayout() {
   const { user, logout, isAdmin, hasPermission } = useAuth();
   const { t, lang, setLang } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { hideFinancials, toggleFinancials } = usePrivacy();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isCustomer = user?.role === 'customer';
-  const [privacyOn, setPrivacyOn] = useState(
-    () => typeof sessionStorage !== 'undefined' && sessionStorage.getItem('privacy-blur') === '1',
-  );
-
-  const togglePrivacy = () => {
-    setPrivacyOn((prev) => {
-      const next = !prev;
-      sessionStorage.setItem('privacy-blur', next ? '1' : '0');
-      return next;
-    });
-  };
 
   const links = navLinks.filter((link) => {
     if (link.adminOnly) return isAdmin;
@@ -137,18 +128,18 @@ export function MainLayout() {
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
-            {!isCustomer && (
+            {isAdmin && (
             <button
-              onClick={togglePrivacy}
+              onClick={toggleFinancials}
               className={`p-2 rounded-lg border ${
-                privacyOn
+                hideFinancials
                   ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700'
                   : 'text-[var(--color-text)] border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)]'
               }`}
-              title={privacyOn ? t('showRecords') : t('hideRecords')}
-              aria-pressed={privacyOn}
+              title={hideFinancials ? t('showFinancials') : t('hideFinancials')}
+              aria-pressed={hideFinancials}
             >
-              {privacyOn ? <Eye size={18} /> : <EyeOff size={18} />}
+              {hideFinancials ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
             )}
             <button
@@ -161,11 +152,7 @@ export function MainLayout() {
           </div>
         </header>
 
-        <main
-          className={`flex-1 p-3 sm:p-4 lg:p-6 overflow-auto w-full max-w-[100vw] lg:max-w-none ${
-            privacyOn ? 'privacy-blur' : ''
-          }`}
-        >
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-auto w-full max-w-[100vw] lg:max-w-none">
           <Outlet />
         </main>
 

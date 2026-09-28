@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { catalogApi, type Brand, type Category, type Vehicle } from '../api/catalog';
 import type { Product } from '../types';
@@ -34,6 +35,9 @@ const emptyProduct = (): Omit<Product, 'id' | 'createdAt'> => ({
 export function InventoryPage() {
   const { state, dispatch } = useStore();
   const { t, lang } = useLanguage();
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('edit');
+  const canDelete = hasPermission('delete');
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('all');
@@ -205,15 +209,21 @@ export function InventoryPage() {
                     </Badge>
                   </td>
                   <td className="px-5 py-3 text-end">
+                    {(canEdit || canDelete) && (
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => openEdit(p)} />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={<Trash2 size={14} />}
-                        onClick={() => void handleDelete(p.id)}
-                      />
+                      {canEdit && (
+                        <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => openEdit(p)} />
+                      )}
+                      {canDelete && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<Trash2 size={14} />}
+                          onClick={() => void handleDelete(p.id)}
+                        />
+                      )}
                     </div>
+                    )}
                   </td>
                 </tr>
               ))}

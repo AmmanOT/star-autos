@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { DEFAULT_CUSTOMER_PASSWORD, User } from './entities/user.entity';
-import { ALL_PERMISSIONS, Permission, UserRole } from '../common/enums';
+import { ALL_PERMISSIONS, Permission, UserRole, sanitizeEmployeePermissions } from '../common/enums';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 
@@ -74,7 +74,7 @@ export class UsersService {
       passwordHash: await bcrypt.hash(dto.password, 10),
       role: UserRole.EMPLOYEE,
       phone: dto.phone?.trim() || null,
-      permissions: dto.permissions ?? [],
+      permissions: sanitizeEmployeePermissions(dto.permissions),
     });
 
     const saved = await this.usersRepository.save(user);
@@ -106,7 +106,7 @@ export class UsersService {
       user.phone = dto.phone.trim() || null;
     }
     if (dto.permissions !== undefined) {
-      user.permissions = dto.permissions;
+      user.permissions = sanitizeEmployeePermissions(dto.permissions);
     }
     if (dto.password) {
       user.passwordHash = await bcrypt.hash(dto.password, 10);
@@ -213,7 +213,7 @@ export class UsersService {
     if (user.role === UserRole.CUSTOMER) {
       return [];
     }
-    return user.permissions ?? [];
+    return sanitizeEmployeePermissions(user.permissions);
   }
 
   toPublicUser(user: User) {

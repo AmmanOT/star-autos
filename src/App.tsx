@@ -3,6 +3,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { PrivacyProvider } from './contexts/PrivacyContext';
 import { StoreProvider } from './contexts/StoreContext';
 import { BillingDraftProvider } from './contexts/BillingDraftContext';
 import { MainLayout } from './components/layout/MainLayout';
@@ -24,6 +25,7 @@ export default function App() {
       <LanguageProvider>
         <ToastProvider>
           <AuthProvider>
+            <PrivacyProvider>
             <StoreProvider>
               <BillingDraftProvider>
                 <BrowserRouter>
@@ -34,7 +36,7 @@ export default function App() {
 
                   <Route element={<ProtectedRoute />}>
                     <Route path="/admin" element={<MainLayout />}>
-                      <Route element={<ProtectedRoute permission="dashboard" />}>
+                      <Route element={<ProtectedRoute adminOnly />}>
                         <Route index element={<DashboardPage />} />
                       </Route>
                       <Route element={<ProtectedRoute permission="inventory" />}>
@@ -49,10 +51,10 @@ export default function App() {
                       <Route element={<ProtectedRoute permission="ledger" />}>
                         <Route path="ledger" element={<LedgerPage />} />
                       </Route>
-                      <Route element={<ProtectedRoute permission="reports" />}>
+                      <Route element={<ProtectedRoute adminOnly />}>
                         <Route path="reports" element={<ReportsPage />} />
                       </Route>
-                      <Route element={<ProtectedRoute permission="activityLogs" />}>
+                      <Route element={<ProtectedRoute adminOnly />}>
                         <Route path="activity-logs" element={<ActivityLogsPage />} />
                       </Route>
                       <Route element={<ProtectedRoute adminOnly />}>
@@ -68,6 +70,7 @@ export default function App() {
                 </BrowserRouter>
               </BillingDraftProvider>
             </StoreProvider>
+            </PrivacyProvider>
           </AuthProvider>
         </ToastProvider>
       </LanguageProvider>

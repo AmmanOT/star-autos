@@ -18,7 +18,7 @@ import {
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { RequireAllPermissions, RequirePermissions } from '../common/decorators/permissions.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Permission, UserRole } from '../common/enums';
 
@@ -57,6 +57,7 @@ export class ProductsController {
 
   @Patch(':id')
   @RequirePermissions(Permission.INVENTORY)
+  @RequireAllPermissions(Permission.EDIT)
   @ApiOperation({ summary: 'Update product' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -67,6 +68,7 @@ export class ProductsController {
 
   @Delete(':id')
   @RequirePermissions(Permission.INVENTORY)
+  @RequireAllPermissions(Permission.DELETE)
   @ApiOperation({ summary: 'Delete product' })
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.productsService.remove(id);

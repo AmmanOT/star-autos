@@ -12,9 +12,34 @@ export enum Permission {
   LEDGER = 'ledger',
   REPORTS = 'reports',
   ACTIVITY_LOGS = 'activityLogs',
+  EDIT = 'edit',
+  DELETE = 'delete',
 }
 
 export const ALL_PERMISSIONS: Permission[] = Object.values(Permission);
+
+/** Pages only Super Admin can open. */
+export const ADMIN_ONLY_PERMISSIONS: Permission[] = [
+  Permission.DASHBOARD,
+  Permission.REPORTS,
+  Permission.ACTIVITY_LOGS,
+];
+
+/** Permissions SA can assign to employees. */
+export const EMPLOYEE_ASSIGNABLE_PERMISSIONS: Permission[] = [
+  Permission.INVENTORY,
+  Permission.CUSTOMERS,
+  Permission.BILLING,
+  Permission.LEDGER,
+  Permission.EDIT,
+  Permission.DELETE,
+];
+
+export function sanitizeEmployeePermissions(permissions: Permission[] | undefined): Permission[] {
+  return (permissions ?? []).filter((permission) =>
+    EMPLOYEE_ASSIGNABLE_PERMISSIONS.includes(permission),
+  );
+}
 
 export enum PartCategory {
   RING = 'ring',
