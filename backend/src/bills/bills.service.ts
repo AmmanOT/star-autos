@@ -321,6 +321,7 @@ export class BillsService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!product) {
+        if (mode === 'restore') continue;
         throw new NotFoundException(`Product ${item.productId} not found`);
       }
 
