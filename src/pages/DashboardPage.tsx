@@ -2,41 +2,73 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Users, Receipt, AlertTriangle, TrendingUp, ArrowRight } from 'lucide-react';
 import { reportsApi, type DashboardSummary } from '../api';
+import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { StatCard, Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { formatPKR, formatDateShort } from '../utils/format';
+import { addIsoDays, formatPKR, formatDateShort, isLowStock, todayPkDateKey } from '../utils/format';
+import type { Bill } from '../types';
 
 export function DashboardPage() {
+  const { state } = useStore();
   const { t, lang } = useLanguage();
   const { hideFinancials } = usePrivacy();
-  const [data, setData] = useState<DashboardSummary | null>(null);
+  const [api, setApi] = useState<DashboardSummary | null>(null);
+  const [todayExtra, setTodayExtra] = useState<{ sales: number; count: number; recent: Bill[] }>({
+    sales: 0,
+    count: 0,
+    recent: [],
+  });
 
   useEffect(() => {
     let cancelled = false;
+    const today = todayPkDateKey();
     void reportsApi
       .dashboard()
       .then((summary) => {
-        if (!cancelled) setData(summary);
+        if (!cancelled) setApi(summary);
       })
       .catch(() => {
-        if (!cancelled) setData(null);
+        if (!cancelled) setApi(null);
+      });
+    void reportsApi
+      .sales(today, addIsoDays(today, 1))
+      .then((sales) => {
+        if (cancelled) return;
+        const recent = [...(sales.bills ?? [])]
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5);
+        setTodayExtra({
+          sales: Number(sales.revenue ?? 0),
+          count: Number(sales.billCount ?? recent.length),
+          recent,
+        });
+      })
+      .catch(() => {
+        /* dashboard store fallback still fills counts */
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const todaySales = data?.todaySales ?? 0;
-  const todayBillCount = data?.todayBillCount ?? 0;
-  const productCount = data?.productCount ?? 0;
-  const customerCount = data?.customerCount ?? 0;
-  const pendingDues = data?.pendingDues ?? 0;
-  const inventoryValue = data?.inventoryValue ?? 0;
-  const billsThisMonth = data?.billsThisMonth ?? 0;
-  const lowStockItems = data?.lowStock ?? [];
-  const recentBills = data?.recentBills ?? [];
+  const productCount = api?.productCount || state.products.length;
+  const customerCount = api?.customerCount || state.customers.length;
+  const pendingDues =
+    api?.pendingDues ||
+    state.customers.reduce((sum, customer) => sum + Math.max(0, customer.balance), 0);
+  const inventoryValue =
+    api?.inventoryValue ||
+    state.products.reduce((sum, product) => sum + product.purchasePrice * product.quantity, 0);
+  const todaySales = api?.todaySales || todayExtra.sales;
+  const todayBillCount = api?.todayBillCount || todayExtra.count;
+  const billsThisMonth = api?.billsThisMonth ?? 0;
+  const lowStockItems = (api?.lowStock?.length
+    ? api.lowStock
+    : state.products.filter((p) => isLowStock(p.quantity, p.minStock))
+  ).slice(0, 8);
+  const recentBills = api?.recentBills?.length ? api.recentBills : todayExtra.recent;
 
   return (
     <div className="space-y-6">
@@ -111,7 +143,7 @@ export function DashboardPage() {
               <div className="flex justify-between"><span className="text-[var(--color-text-muted)]">{t('billsThisMonth')}</span><span className="font-semibold">{billsThisMonth}</span></div>
               <div className="flex justify-between items-center">
                 <span className="text-[var(--color-text-muted)]">{t('lowStock')}</span>
-                <Badge variant="warning"><AlertTriangle size={12} className="me-1" />{data?.lowStockCount ?? lowStockItems.length}</Badge>
+                <Badge variant="warning"><AlertTriangle size={12} className="me-1" />{api?.lowStockCount || lowStockItems.length}</Badge>
               </div>
             </div>
           </Card>

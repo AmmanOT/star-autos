@@ -20,13 +20,16 @@ export class ActivityLogsController {
   @ApiOperation({ summary: 'List activity logs' })
   @ApiQuery({ name: 'entityType', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'page', required: false })
   findAll(
     @Query('entityType') entityType?: string,
     @Query('limit') limit?: string,
+    @Query('page') page?: string,
   ) {
     return this.activityLogsService.findAll({
       entityType: entityType || undefined,
       limit: limit ? Number(limit) : undefined,
+      page,
     });
   }
 }

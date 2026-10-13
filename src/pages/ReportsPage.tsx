@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { reportsApi, type ReportsOverview } from '../api';
+import { ApiError, reportsApi, type ReportsOverview } from '../api';
+import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
+import { buildOverviewFromBills } from '../utils/reportsOverview';
 import { categoryLabel } from '../i18n/translations';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
-import { formatPKR } from '../utils/format';
+import { addIsoDays, formatPKR } from '../utils/format';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 const emptyOverview: ReportsOverview = {
@@ -29,6 +31,7 @@ function monthRange(year: number, month: number) {
 }
 
 export function ReportsPage() {
+  const { state } = useStore();
   const { t, lang } = useLanguage();
   const { hideFinancials } = usePrivacy();
   const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly');
@@ -50,13 +53,38 @@ export function ReportsPage() {
       .then((overview) => {
         if (!cancelled) setData(overview);
       })
-      .catch(() => {
+      .catch(async (err) => {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 404) {
+          try {
+            const sales = await reportsApi.sales(range.from, addIsoDays(range.to, 1));
+            const bills = sales.bills ?? [];
+            if (!cancelled) {
+              setData(
+                bills.length
+                  ? buildOverviewFromBills(bills, state.products, period, range.from)
+                  : {
+                      ...emptyOverview,
+                      revenue: Number(sales.revenue ?? 0),
+                      billCount: Number(sales.billCount ?? 0),
+                      trend: (sales.daily ?? []).map((row) => ({
+                        label: period === 'yearly' ? row.date.slice(5, 7) : String(Number(row.date.slice(8, 10))),
+                        sales: row.revenue,
+                      })),
+                    },
+              );
+            }
+            return;
+          } catch {
+            /* fall through */
+          }
+        }
         if (!cancelled) setData(emptyOverview);
       });
     return () => {
       cancelled = true;
     };
-  }, [range.from, range.to, period]);
+  }, [range.from, range.to, period, state.products]);
 
   const categoryData = data.categories.map((row) => ({
     ...row,

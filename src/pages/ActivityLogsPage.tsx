@@ -32,18 +32,31 @@ export function ActivityLogsPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>('all');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 50;
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await activityLogsApi.list(filter === 'all' ? undefined : filter);
-      setLogs(data);
+      const data = await activityLogsApi.list({
+        entityType: filter === 'all' ? undefined : filter,
+        page,
+        limit: pageSize,
+      });
+      const serverPaged = data.total > data.items.length;
+      const all = data.items;
+      const rows = serverPaged
+        ? all
+        : all.slice((page - 1) * pageSize, page * pageSize);
+      setLogs(rows);
+      setTotal(data.total);
     } catch {
       toastError('Could not load activity logs');
     } finally {
       setLoading(false);
     }
-  }, [filter, toastError]);
+  }, [filter, page, toastError]);
 
   useEffect(() => {
     void load();
@@ -74,7 +87,10 @@ export function ActivityLogsPage() {
           <button
             key={key}
             type="button"
-            onClick={() => setFilter(key)}
+            onClick={() => {
+              setFilter(key);
+              setPage(1);
+            }}
             className={`px-4 py-2 text-sm font-semibold rounded-lg border transition-colors ${
               filter === key
                 ? 'bg-brand-50 text-brand-700 border-brand-200 dark:bg-brand-800/50 dark:text-brand-300 dark:border-brand-700'
@@ -129,6 +145,16 @@ export function ActivityLogsPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {total > pageSize && (
+          <p className="text-xs text-[var(--color-text-muted)] mt-4 pt-3 border-t border-[var(--color-border)]">
+            {logs.length} / {total}
+            <span className="ms-3 inline-flex gap-2">
+              <button type="button" className="underline disabled:no-underline disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</button>
+              <span>{page}/{Math.max(1, Math.ceil(total / pageSize))}</span>
+              <button type="button" className="underline disabled:no-underline disabled:opacity-40" disabled={page >= Math.ceil(total / pageSize)} onClick={() => setPage((p) => p + 1)}>Next</button>
+            </span>
+          </p>
         )}
       </Card>
     </div>

@@ -34,6 +34,12 @@ export function todayPkDateKey(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: PK_TZ });
 }
 
+export function addIsoDays(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  const next = new Date(Date.UTC(year, month - 1, day + days));
+  return next.toISOString().slice(0, 10);
+}
+
 export function generateBillNumber(): string {
   const year = new Date().getFullYear();
   const num = Math.floor(Math.random() * 9000) + 1000;

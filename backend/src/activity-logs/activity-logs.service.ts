@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { ActivityLog } from './entities/activity-log.entity';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
+import { paginated, parsePage, type Paginated } from '../common/pagination';
 
 export interface WriteActivityLogInput {
   action: string;
@@ -23,11 +24,11 @@ export class ActivityLogsService {
   async findAll(options?: {
     entityType?: string;
     limit?: number;
-  }): Promise<ActivityLog[]> {
+    page?: string;
+  }): Promise<ActivityLog[] | Paginated<ActivityLog>> {
     const qb = this.logsRepository
       .createQueryBuilder('log')
-      .orderBy('log.createdAt', 'DESC')
-      .take(Math.min(options?.limit ?? 200, 500));
+      .orderBy('log.createdAt', 'DESC');
 
     if (options?.entityType) {
       qb.andWhere('log.entityType = :entityType', {
@@ -35,7 +36,13 @@ export class ActivityLogsService {
       });
     }
 
-    return qb.getMany();
+    if (options?.page != null) {
+      const { page, limit, skip } = parsePage(options.page, String(options.limit ?? 50));
+      const [items, total] = await qb.skip(skip).take(limit).getManyAndCount();
+      return paginated(items, total, page, limit);
+    }
+
+    return qb.take(Math.min(options?.limit ?? 200, 500)).getMany();
   }
 
   async write(

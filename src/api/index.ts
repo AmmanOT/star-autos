@@ -1,4 +1,5 @@
 import { apiRequest } from './client';
+export { ApiError } from './client';
 import { asList, queryString, type Paginated } from './list';
 import type { ActivityLog, Bill, Customer, Payment, Product } from '../types';
 export { usersApi } from './users';
@@ -102,17 +103,56 @@ export const paymentsApi = {
   remove: (id: string) => apiRequest<void>(`/payments/${id}`, { method: 'DELETE' }),
 };
 
+type DashboardRaw = DashboardSummary & {
+  totals?: { products?: number; customers?: number };
+  receivables?: number;
+  monthlySales?: { billCount?: number };
+};
+
+export function normalizeDashboard(raw: DashboardRaw | null | undefined): DashboardSummary | null {
+  if (!raw) return null;
+  return {
+    todaySales: Number(raw.todaySales ?? 0),
+    todayBillCount: Number(raw.todayBillCount ?? 0),
+    productCount: Number(raw.productCount ?? raw.totals?.products ?? 0),
+    customerCount: Number(raw.customerCount ?? raw.totals?.customers ?? 0),
+    pendingDues: Number(raw.pendingDues ?? raw.receivables ?? 0),
+    inventoryValue: Number(raw.inventoryValue ?? 0),
+    billsThisMonth: Number(raw.billsThisMonth ?? raw.monthlySales?.billCount ?? 0),
+    lowStockCount: Number(raw.lowStockCount ?? raw.lowStock?.length ?? 0),
+    recentBills: raw.recentBills ?? [],
+    lowStock: raw.lowStock ?? [],
+  };
+}
+
+export type SalesReport = {
+  billCount: number;
+  revenue: number;
+  collected?: number;
+  daily?: Array<{ date: string; billCount: number; revenue: number }>;
+  bills?: Bill[];
+};
+
 export const reportsApi = {
-  dashboard: () => apiRequest<DashboardSummary>('/reports/dashboard'),
+  dashboard: async () =>
+    normalizeDashboard(await apiRequest<DashboardRaw>('/reports/dashboard')),
   overview: (from: string, to: string, period: 'monthly' | 'yearly') =>
     apiRequest<ReportsOverview>(
       `/reports/overview${queryString({ from, to, period })}`,
     ),
+  sales: (from: string, to: string) =>
+    apiRequest<SalesReport>(`/reports/sales${queryString({ from, to })}`),
 };
 
 export const activityLogsApi = {
-  list: (entityType?: string) =>
-    apiRequest<ActivityLog[]>(
-      entityType ? `/activity-logs?entityType=${entityType}&limit=200` : '/activity-logs?limit=200',
-    ),
+  list: async (params: { entityType?: string; page?: number; limit?: number } = {}) => {
+    const data = await apiRequest<ActivityLog[] | Paginated<ActivityLog>>(
+      `/activity-logs${queryString({
+        entityType: params.entityType,
+        page: params.page,
+        limit: params.limit ?? 50,
+      })}`,
+    );
+    return asList(data);
+  },
 };
