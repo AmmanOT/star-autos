@@ -4,7 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository, SelectQueryBuilder } from 'typeorm';
+import { paginated, parsePage, pkDayRange, type Paginated } from '../common/pagination';
+import { PaymentMethod } from '../common/enums';
 import { Bill, BillItemData } from './entities/bill.entity';
 import { CreateBillDto } from './dto/create-bill.dto';
 import { UpdateBillDto } from './dto/update-bill.dto';
@@ -35,6 +37,73 @@ export class BillsService {
     });
   }
 
+  async query(filters: {
+    customerId?: string;
+    walkIn?: boolean;
+    paymentMethod?: string;
+    search?: string;
+    from?: string;
+    to?: string;
+    page?: string;
+    limit?: string;
+  }): Promise<Paginated<Bill> | Bill[]> {
+    const qb = this.billsRepository.createQueryBuilder('bill');
+    qb.andWhere('bill.deletedAt IS NULL');
+    this.applyBillFilters(qb, filters);
+    qb.orderBy('bill.createdAt', 'DESC');
+
+    if (filters.page == null && filters.limit == null) {
+      return qb.getMany();
+    }
+
+    const { page, limit, skip } = parsePage(filters.page, filters.limit);
+    const [items, total] = await qb.skip(skip).take(limit).getManyAndCount();
+    return paginated(items, total, page, limit);
+  }
+
+  private applyBillFilters(
+    qb: SelectQueryBuilder<Bill>,
+    filters: {
+      customerId?: string;
+      walkIn?: boolean;
+      paymentMethod?: string;
+      search?: string;
+      from?: string;
+      to?: string;
+    },
+  ) {
+    if (filters.walkIn) {
+      qb.andWhere('bill.customerId IS NULL');
+    } else if (filters.customerId) {
+      qb.andWhere('bill.customerId = :customerId', {
+        customerId: filters.customerId,
+      });
+    }
+
+    if (
+      filters.paymentMethod &&
+      Object.values(PaymentMethod).includes(filters.paymentMethod as PaymentMethod)
+    ) {
+      qb.andWhere('bill.paymentMethod = :paymentMethod', {
+        paymentMethod: filters.paymentMethod,
+      });
+    }
+
+    const { start, end } = pkDayRange(filters.from, filters.to);
+    if (start) qb.andWhere('bill.createdAt >= :start', { start });
+    if (end) qb.andWhere('bill.createdAt <= :end', { end });
+
+    const search = filters.search?.trim();
+    if (search) {
+      qb.andWhere(
+        `(bill.billNumber ILIKE :q
+          OR COALESCE(bill.customerName, '') ILIKE :q
+          OR CAST(bill.items AS text) ILIKE :q)`,
+        { q: `%${search}%` },
+      );
+    }
+  }
+
   async findOne(id: string): Promise<Bill> {
     const bill = await this.billsRepository.findOne({ where: { id } });
     if (!bill) {
@@ -45,7 +114,10 @@ export class BillsService {
 
   async create(dto: CreateBillDto, user: AuthUser): Promise<Bill> {
     return this.dataSource.transaction(async (manager) => {
-      const items = this.normalizeItems(dto.items);
+      const items = await this.stampItemCosts(
+        manager,
+        this.normalizeItems(dto.items),
+      );
       this.assertTotals(dto, items);
 
       await this.applyStockDelta(manager, items, 'deduct');
@@ -131,7 +203,11 @@ export class BillsService {
         -(bill.total - bill.paidAmount),
       );
 
-      const nextItems = this.normalizeItems(dto.items ?? bill.items);
+      const nextItems = await this.stampItemCosts(
+        manager,
+        this.normalizeItems(dto.items ?? bill.items),
+        bill.items,
+      );
       const nextSubtotal = dto.subtotal ?? bill.subtotal;
       const nextDiscount = dto.discount ?? bill.discount;
       const nextTotal = dto.total ?? bill.total;
@@ -243,7 +319,7 @@ export class BillsService {
         -(bill.total - bill.paidAmount),
       );
 
-      await manager.remove(bill);
+      await manager.softRemove(bill);
 
       await this.activityLogs.write(
         {
@@ -268,6 +344,7 @@ export class BillsService {
       quantity: number;
       unitPrice: number;
       total: number;
+      purchasePrice?: number;
     }>,
   ): BillItemData[] {
     return items.map((item) => ({
@@ -278,6 +355,31 @@ export class BillsService {
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       total: item.total,
+      purchasePrice: item.purchasePrice,
+    }));
+  }
+
+  /** Freeze cost at first save; keep that cost if the same product stays on the bill. */
+  private async stampItemCosts(
+    manager: EntityManager,
+    items: BillItemData[],
+    previous: BillItemData[] = [],
+  ): Promise<BillItemData[]> {
+    const prior = new Map(
+      previous
+        .filter((item) => item.purchasePrice != null && Number.isFinite(Number(item.purchasePrice)))
+        .map((item) => [item.productId, Number(item.purchasePrice)]),
+    );
+    const missing = [
+      ...new Set(items.map((item) => item.productId).filter((id) => !prior.has(id))),
+    ];
+    const products = missing.length
+      ? await manager.find(Product, { where: { id: In(missing) } })
+      : [];
+    const current = new Map(products.map((p) => [p.id, Number(p.purchasePrice) || 0]));
+    return items.map((item) => ({
+      ...item,
+      purchasePrice: prior.get(item.productId) ?? current.get(item.productId) ?? 0,
     }));
   }
 

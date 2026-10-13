@@ -1,25 +1,42 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Users, Receipt, AlertTriangle, TrendingUp, ArrowRight } from 'lucide-react';
-import { useStore } from '../contexts/StoreContext';
+import { reportsApi, type DashboardSummary } from '../api';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { StatCard, Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { formatPKR, formatDateShort, isLowStock } from '../utils/format';
+import { formatPKR, formatDateShort } from '../utils/format';
 
 export function DashboardPage() {
-  const { state } = useStore();
   const { t, lang } = useLanguage();
   const { hideFinancials } = usePrivacy();
+  const [data, setData] = useState<DashboardSummary | null>(null);
 
-  const today = new Date().toDateString();
-  const todayBills = state.bills.filter((b) => new Date(b.createdAt).toDateString() === today);
-  const todaySales = todayBills.reduce((s, b) => s + b.total, 0);
-  const pendingDues = state.customers.reduce((s, c) => s + Math.max(0, c.balance), 0);
-  const lowStockItems = state.products.filter((p) => isLowStock(p.quantity, p.minStock));
-  const inventoryValue = state.products.reduce((s, p) => s + p.purchasePrice * p.quantity, 0);
-  const thisMonth = new Date().getMonth();
-  const billsThisMonth = state.bills.filter((b) => new Date(b.createdAt).getMonth() === thisMonth);
+  useEffect(() => {
+    let cancelled = false;
+    void reportsApi
+      .dashboard()
+      .then((summary) => {
+        if (!cancelled) setData(summary);
+      })
+      .catch(() => {
+        if (!cancelled) setData(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const todaySales = data?.todaySales ?? 0;
+  const todayBillCount = data?.todayBillCount ?? 0;
+  const productCount = data?.productCount ?? 0;
+  const customerCount = data?.customerCount ?? 0;
+  const pendingDues = data?.pendingDues ?? 0;
+  const inventoryValue = data?.inventoryValue ?? 0;
+  const billsThisMonth = data?.billsThisMonth ?? 0;
+  const lowStockItems = data?.lowStock ?? [];
+  const recentBills = data?.recentBills ?? [];
 
   return (
     <div className="space-y-6">
@@ -30,10 +47,10 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {!hideFinancials && (
-          <StatCard label={t('todaySales')} value={formatPKR(todaySales)} icon={<TrendingUp size={20} />} trend={`${todayBills.length} bills today`} />
+          <StatCard label={t('todaySales')} value={formatPKR(todaySales)} icon={<TrendingUp size={20} />} trend={`${todayBillCount} bills today`} />
         )}
-        <StatCard label={t('totalProducts')} value={String(state.products.length)} icon={<Package size={20} />} />
-        <StatCard label={t('totalCustomers')} value={String(state.customers.length)} icon={<Users size={20} />} />
+        <StatCard label={t('totalProducts')} value={String(productCount)} icon={<Package size={20} />} />
+        <StatCard label={t('totalCustomers')} value={String(customerCount)} icon={<Users size={20} />} />
         {!hideFinancials && (
           <StatCard label={t('pendingDues')} value={formatPKR(pendingDues)} icon={<Receipt size={20} />} />
         )}
@@ -54,7 +71,7 @@ export function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {state.bills.slice(0, 5).map((bill) => (
+                {recentBills.map((bill) => (
                   <tr key={bill.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-elevated)]">
                     <td className="px-5 py-3 font-medium">{bill.billNumber}</td>
                     <td className="px-3 py-3">{bill.customerName ?? t('walkIn')}</td>
@@ -91,10 +108,10 @@ export function DashboardPage() {
               {!hideFinancials && (
                 <div className="flex justify-between"><span className="text-[var(--color-text-muted)]">{t('inventoryValue')}</span><span className="font-semibold">{formatPKR(inventoryValue)}</span></div>
               )}
-              <div className="flex justify-between"><span className="text-[var(--color-text-muted)]">{t('billsThisMonth')}</span><span className="font-semibold">{billsThisMonth.length}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--color-text-muted)]">{t('billsThisMonth')}</span><span className="font-semibold">{billsThisMonth}</span></div>
               <div className="flex justify-between items-center">
                 <span className="text-[var(--color-text-muted)]">{t('lowStock')}</span>
-                <Badge variant="warning"><AlertTriangle size={12} className="me-1" />{lowStockItems.length}</Badge>
+                <Badge variant="warning"><AlertTriangle size={12} className="me-1" />{data?.lowStockCount ?? lowStockItems.length}</Badge>
               </div>
             </div>
           </Card>

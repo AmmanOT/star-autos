@@ -45,6 +45,12 @@ export class BillItemDto {
   @IsNumber()
   @Min(0)
   total: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  purchasePrice?: number;
 }
 
 export class CreateBillDto {

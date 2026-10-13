@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
+import { billsApi } from '../../api';
 import { useStore } from '../../contexts/StoreContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -9,18 +10,8 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { ThermalReceipt } from './ThermalReceipt';
-import { pkDateKey, todayPkDateKey } from '../../utils/format';
+import { todayPkDateKey } from '../../utils/format';
 import { printThermalReceipts } from '../../utils/printReceipt';
-
-function billsForCustomerDate(bills: Bill[], customerId: string, dateKey: string) {
-  return bills
-    .filter((b) => {
-      const matchCustomer =
-        customerId === 'walkin' ? !b.customerId : b.customerId === customerId;
-      return matchCustomer && pkDateKey(b.createdAt) === dateKey;
-    })
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-}
 
 export function BulkPrintBillsButton({
   defaultCustomerId = '',
@@ -34,15 +25,35 @@ export function BulkPrintBillsButton({
   const [customerId, setCustomerId] = useState(defaultCustomerId);
   const [date, setDate] = useState(todayPkDateKey);
   const [printQueue, setPrintQueue] = useState<Bill[] | null>(null);
+  const [matches, setMatches] = useState<Bill[]>([]);
 
   useEffect(() => {
     if (open) setCustomerId(defaultCustomerId);
   }, [open, defaultCustomerId]);
 
-  const matches = useMemo(
-    () => (customerId && date ? billsForCustomerDate(state.bills, customerId, date) : []),
-    [state.bills, customerId, date],
-  );
+  useEffect(() => {
+    if (!open || !customerId || !date) {
+      setMatches([]);
+      return;
+    }
+    let cancelled = false;
+    void billsApi
+      .list({ customerId, from: date, to: date, page: 1, limit: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        setMatches(
+          [...res.items].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          ),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setMatches([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, customerId, date]);
 
   useEffect(() => {
     if (!printQueue?.length) return;

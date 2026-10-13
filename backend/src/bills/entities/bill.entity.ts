@@ -1,6 +1,7 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   Index,
   PrimaryGeneratedColumn,
@@ -16,6 +17,8 @@ export interface BillItemData {
   quantity: number;
   unitPrice: number;
   total: number;
+  /** Purchase price frozen at bill time — profit must not follow later inventory edits. */
+  purchasePrice?: number;
 }
 
 @Entity('bills')
@@ -27,6 +30,7 @@ export class Bill {
   @Column({ name: 'bill_number', type: 'varchar', length: 40 })
   billNumber: string;
 
+  @Index()
   @Column({ name: 'customer_id', type: 'uuid', nullable: true })
   customerId: string | null;
 
@@ -80,6 +84,11 @@ export class Bill {
   @Column({ name: 'created_by', type: 'varchar', length: 60 })
   createdBy: string;
 
+  @Index()
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
+
+  @Index()
+  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
 }

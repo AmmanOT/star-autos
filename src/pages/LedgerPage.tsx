@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { customersApi, newIdempotencyKey } from '../api';
 import { Eye, Plus, Printer, Trash2 } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,7 +16,7 @@ import { ThermalReceipt } from '../components/billing/ThermalReceipt';
 import { formatPKR, formatDateShort } from '../utils/format';
 import { matchesSearch } from '../utils/search';
 import { printThermalReceipt } from '../utils/printReceipt';
-import type { Bill } from '../types';
+import type { Bill, Payment } from '../types';
 
 export function LedgerPage() {
   const { state, dispatch } = useStore();
@@ -30,6 +31,9 @@ export function LedgerPage() {
   const [paymentModal, setPaymentModal] = useState(false);
   const [viewBill, setViewBill] = useState<Bill | null>(null);
   const [payForm, setPayForm] = useState({ amount: 0, type: 'received' as 'received' | 'paid', method: 'cash' as 'cash' | 'bank', notes: '' });
+  const [customerBills, setCustomerBills] = useState<Bill[]>([]);
+  const [customerPayments, setCustomerPayments] = useState<Payment[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (isCustomer) {
@@ -43,11 +47,38 @@ export function LedgerPage() {
   );
 
   const selected = state.customers.find((c) => c.id === selectedId);
-  const customerBills = state.bills.filter((b) => b.customerId === selectedId);
-  const customerPayments = state.payments.filter((p) => p.customerId === selectedId);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setCustomerBills([]);
+      setCustomerPayments([]);
+      return;
+    }
+    let cancelled = false;
+    void customersApi
+      .ledger(selectedId)
+      .then((res) => {
+        if (cancelled) return;
+        setCustomerBills(
+          res.entries.filter((e) => e.kind === 'bill').map((e) => e.data as Bill),
+        );
+        setCustomerPayments(
+          res.entries.filter((e) => e.kind === 'payment').map((e) => e.data as Payment),
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCustomerBills([]);
+        setCustomerPayments([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, state.customers, state.payments, state.bills]);
 
   const handlePayment = async () => {
-    if (!selectedId || payForm.amount <= 0) return;
+    if (!selectedId || payForm.amount <= 0 || saving) return;
+    setSaving(true);
     try {
       await dispatch({
         type: 'ADD_PAYMENT',
@@ -58,11 +89,14 @@ export function LedgerPage() {
           method: payForm.method,
           notes: payForm.notes,
         },
+        idempotencyKey: newIdempotencyKey(),
       });
       setPaymentModal(false);
       setPayForm({ amount: 0, type: 'received', method: 'cash', notes: '' });
     } catch {
       /* toast handled in store */
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -255,7 +289,7 @@ export function LedgerPage() {
           <Input label={t('notes')} value={payForm.notes} onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })} />
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setPaymentModal(false)}>{t('cancel')}</Button>
-            <Button onClick={handlePayment}>{t('save')}</Button>
+            <Button onClick={() => void handlePayment()} disabled={saving || payForm.amount <= 0}>{saving ? '…' : t('save')}</Button>
           </div>
         </div>
       </Modal>

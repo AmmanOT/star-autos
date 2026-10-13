@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { billsApi } from '../../api';
 import { Eye, Pencil, Trash2, Printer, MessageCircle, Plus, Minus } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -24,7 +25,7 @@ import {
   whatsappBillLink,
   buildBillWhatsAppText,
 } from '../../utils/format';
-import { matchesSearch, productMatchesSearch } from '../../utils/search';
+import { productMatchesSearch } from '../../utils/search';
 
 const ADD_NEW_CUSTOMER = '__add_new__';
 
@@ -47,23 +48,43 @@ export function BillRecordsPanel() {
   const [dateTo, setDateTo] = useState('');
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [modalMode, setModalMode] = useState<'view' | 'edit'>('view');
+  const [page, setPage] = useState(1);
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [total, setTotal] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
 
-  const filtered = useMemo(() => {
-    return state.bills.filter((b) => {
-      const matchSearch = matchesSearch(
-        search,
-        b.billNumber,
-        b.customerName,
-        ...b.items.flatMap((i) => [i.productName, i.partNumber]),
-      );
-      const matchCustomer = customerFilter === 'all' || b.customerId === customerFilter || (customerFilter === 'walkin' && !b.customerId);
-      const matchPayment = paymentFilter === 'all' || b.paymentMethod === paymentFilter;
-      const d = new Date(b.createdAt);
-      const matchFrom = !dateFrom || d >= new Date(dateFrom);
-      const matchTo = !dateTo || d <= new Date(dateTo + 'T23:59:59');
-      return matchSearch && matchCustomer && matchPayment && matchFrom && matchTo;
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, customerFilter, paymentFilter, dateFrom, dateTo]);
+
+  const loadBills = useCallback(async () => {
+    const res = await billsApi.list({
+      page,
+      limit: 50,
+      search: debouncedSearch.trim() || undefined,
+      customerId: customerFilter === 'all' ? undefined : customerFilter,
+      paymentMethod: paymentFilter === 'all' ? undefined : paymentFilter,
+      from: dateFrom || undefined,
+      to: dateTo || undefined,
     });
-  }, [state.bills, search, customerFilter, paymentFilter, dateFrom, dateTo]);
+    setBills(res.items);
+    setTotal(res.total);
+  }, [page, debouncedSearch, customerFilter, paymentFilter, dateFrom, dateTo]);
+
+  useEffect(() => {
+    void loadBills().catch(() => {
+      setBills([]);
+      setTotal(0);
+    });
+  }, [loadBills]);
+
+  const filtered = bills;
+  const pageCount = Math.max(1, Math.ceil(total / 50));
 
   const openView = (bill: Bill) => { setSelectedBill(bill); setModalMode('view'); };
   const openEdit = (bill: Bill) => { setSelectedBill(bill); setModalMode('edit'); };
@@ -73,6 +94,7 @@ export function BillRecordsPanel() {
     if (!confirm(`${t('confirmDeleteBill')} (${bill.billNumber})`)) return;
     try {
       await dispatch({ type: 'DELETE_BILL', payload: bill.id });
+      await loadBills();
     } catch {
       /* toast handled in store */
     }
@@ -131,7 +153,7 @@ export function BillRecordsPanel() {
                   <tr key={bill.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-elevated)]">
                     <td className="px-5 py-3 font-mono font-medium">{bill.billNumber}</td>
                     <td className="px-3 py-3">{bill.customerName ?? t('walkIn')}</td>
-                    <td className="px-3 py-3 text-[var(--color-text-muted)]">{bill.items.length}</td>
+                    <td className="px-3 py-3 text-[var(--color-text-muted)]">{bill.items?.length ?? 0}</td>
                     <td className="px-3 py-3 text-end font-medium">{formatPKR(bill.total)}</td>
                     {isAdmin && !hideFinancials && (
                       <td className="px-3 py-3 text-end font-medium text-emerald-600">{formatPKR(billProfit(bill, state.products))}</td>
@@ -163,7 +185,14 @@ export function BillRecordsPanel() {
           )}
         </div>
         <p className="text-xs text-[var(--color-text-muted)] mt-4 pt-3 border-t border-[var(--color-border)]">
-          {filtered.length} / {state.bills.length} bills
+          {filtered.length} / {total} bills
+          {pageCount > 1 && (
+            <span className="ms-3 inline-flex gap-2">
+              <button type="button" className="underline disabled:no-underline disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</button>
+              <span>{page}/{pageCount}</span>
+              <button type="button" className="underline disabled:no-underline disabled:opacity-40" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)}>Next</button>
+            </span>
+          )}
         </p>
       </Card>
 
@@ -174,17 +203,19 @@ export function BillRecordsPanel() {
           mode={modalMode}
           onClose={closeModal}
           onSwitchToEdit={() => setModalMode('edit')}
+          onSaved={() => void loadBills()}
         />
       )}
     </div>
   );
 }
 
-function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
+function BillDetailModal({ bill, mode, onClose, onSwitchToEdit, onSaved }: {
   bill: Bill;
   mode: 'view' | 'edit';
   onClose: () => void;
   onSwitchToEdit: () => void;
+  onSaved?: () => void;
 }) {
   const { state, dispatch } = useStore();
   const { t, lang } = useLanguage();
@@ -209,6 +240,7 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
   const [notes, setNotes] = useState(bill.notes ?? '');
   const [search, setSearch] = useState('');
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const searchResults = useMemo(() => {
     if (!isEdit) return [];
@@ -276,9 +308,10 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
   };
 
   const handleSave = async () => {
-    if (items.length === 0) return;
+    if (items.length === 0 || saving) return;
     const customer = customerId ? state.customers.find((c) => c.id === customerId) : undefined;
     const paid = paymentMethod === 'credit' ? 0 : paidAmount;
+    setSaving(true);
     try {
       await dispatch({
         type: 'UPDATE_BILL',
@@ -295,9 +328,12 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
           notes,
         },
       });
+      onSaved?.();
       onClose();
     } catch {
       /* toast handled in store */
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -391,7 +427,7 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit }: {
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="secondary" onClick={onClose}>{t('cancel')}</Button>
-              <Button onClick={handleSave} disabled={items.length === 0}>{t('save')}</Button>
+              <Button onClick={() => void handleSave()} disabled={items.length === 0 || saving}>{saving ? '…' : t('save')}</Button>
             </div>
           </div>
         </div>

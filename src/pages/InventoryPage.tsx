@@ -46,6 +46,7 @@ export function InventoryPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyProduct());
+  const [saving, setSaving] = useState(false);
 
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -108,6 +109,8 @@ export function InventoryPage() {
       toast.error('Please enter quantity');
       return;
     }
+    if (saving) return;
+    setSaving(true);
     try {
       if (editing) {
         await dispatch({ type: 'UPDATE_PRODUCT', payload: { ...editing, ...form } as Product });
@@ -117,6 +120,8 @@ export function InventoryPage() {
       setModalOpen(false);
     } catch {
       /* toast in store */
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -330,7 +335,7 @@ export function InventoryPage() {
           <Button variant="secondary" onClick={() => setModalOpen(false)}>
             {t('cancel')}
           </Button>
-          <Button onClick={() => void handleSave()}>{t('save')}</Button>
+          <Button onClick={() => void handleSave()} disabled={saving}>{saving ? '…' : t('save')}</Button>
         </div>
       </Modal>
     </div>

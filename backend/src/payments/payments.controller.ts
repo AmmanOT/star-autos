@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiHeader,
   ApiOperation,
   ApiQuery,
   ApiTags,
@@ -14,12 +15,16 @@ import {
 import { RequireAllPermissions, RequirePermissions } from '../common/decorators/permissions.decorator';
 import { Permission } from '../common/enums';
 import { isCustomerUser } from '../common/customer-scope';
+import { IdempotencyService } from '../common/idempotency/idempotency.service';
 
 @ApiTags('payments')
 @ApiBearerAuth()
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly idempotency: IdempotencyService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List payments' })
@@ -38,8 +43,15 @@ export class PaymentsController {
   @Post()
   @RequirePermissions(Permission.LEDGER)
   @ApiOperation({ summary: 'Create payment and update customer balance' })
-  create(@Body() dto: CreatePaymentDto, @CurrentUser() user: AuthUser) {
-    return this.paymentsService.create(dto, user);
+  @ApiHeader({ name: 'Idempotency-Key', required: false })
+  create(
+    @Body() dto: CreatePaymentDto,
+    @CurrentUser() user: AuthUser,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.idempotency.run(idempotencyKey, () =>
+      this.paymentsService.create(dto, user),
+    );
   }
 
   @Delete(':id')

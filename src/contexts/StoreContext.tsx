@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -11,6 +12,13 @@ import { billsApi, customersApi, paymentsApi, productsApi } from '../api';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import type { AppState, Bill, Customer, Payment, Product } from '../types';
+import {
+  adjustCustomerBalanceForBill,
+  adjustCustomerBalanceForPayment,
+  adjustCustomerBalanceOnEdit,
+  adjustStockForBill,
+  patchList,
+} from '../utils/billEffects';
 
 type Action =
   | { type: 'ADD_PRODUCT'; payload: Omit<Product, 'id' | 'createdAt'> }
@@ -32,10 +40,11 @@ type Action =
         paymentMethod: Bill['paymentMethod'];
         notes?: string;
       };
+      idempotencyKey?: string;
     }
   | { type: 'UPDATE_BILL'; payload: Bill }
   | { type: 'DELETE_BILL'; payload: string }
-  | { type: 'ADD_PAYMENT'; payload: Omit<Payment, 'id' | 'createdAt'> }
+  | { type: 'ADD_PAYMENT'; payload: Omit<Payment, 'id' | 'createdAt'>; idempotencyKey?: string }
   | { type: 'DELETE_PAYMENT'; payload: string };
 
 const emptyState: AppState = {
@@ -79,12 +88,33 @@ function stripCustomer(c: Partial<Customer>) {
   return rest;
 }
 
+function lockKey(action: Action): string | null {
+  if ((action.type === 'ADD_BILL' || action.type === 'ADD_PAYMENT') && action.idempotencyKey) {
+    return action.idempotencyKey;
+  }
+  if (action.type === 'UPDATE_BILL' || action.type === 'UPDATE_PRODUCT' || action.type === 'UPDATE_CUSTOMER') {
+    return `${action.type}:${action.payload.id}`;
+  }
+  if (
+    action.type === 'DELETE_BILL' ||
+    action.type === 'DELETE_PRODUCT' ||
+    action.type === 'DELETE_CUSTOMER' ||
+    action.type === 'DELETE_PAYMENT'
+  ) {
+    return `${action.type}:${action.payload}`;
+  }
+  return null;
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const toast = useToast();
   const [state, setState] = useState<AppState>(emptyState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const inflight = useRef(new Map<string, Promise<unknown>>());
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -95,20 +125,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       if (user.role === 'customer') {
-        const [customers, bills, payments] = await Promise.all([
-          customersApi.list(),
-          billsApi.list(),
-          paymentsApi.list(),
-        ]);
-        setState({ products: [], customers, bills, payments });
+        const customers = await customersApi.list();
+        setState((prev) => ({ ...prev, products: [], customers, bills: [], payments: [] }));
       } else {
-        const [products, customers, bills, payments] = await Promise.all([
+        const [products, customers] = await Promise.all([
           productsApi.list(),
           customersApi.list(),
-          billsApi.list(),
-          paymentsApi.list(),
         ]);
-        setState({ products, customers, bills, payments });
+        setState((prev) => ({ ...prev, products, customers }));
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load data';
@@ -124,61 +148,159 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const dispatch = useCallback(
-    async (action: Action) => {
-      setError(null);
-      try {
-        let result: unknown;
-        switch (action.type) {
-          case 'ADD_PRODUCT':
-            result = await productsApi.create(stripProduct(action.payload));
-            break;
-          case 'UPDATE_PRODUCT':
-            result = await productsApi.update(action.payload.id, stripProduct(action.payload));
-            break;
-          case 'DELETE_PRODUCT':
-            await productsApi.remove(action.payload);
-            break;
-          case 'ADD_CUSTOMER':
-            result = await customersApi.create(action.payload);
-            break;
-          case 'UPDATE_CUSTOMER':
-            result = await customersApi.update(action.payload.id, stripCustomer(action.payload));
-            break;
-          case 'DELETE_CUSTOMER':
-            await customersApi.remove(action.payload);
-            break;
-          case 'ADD_BILL':
-            result = await billsApi.create(action.payload);
-            break;
-          case 'UPDATE_BILL': {
-            const { id, billNumber: _bn, createdAt: _ca, createdBy: _cb, ...body } = action.payload;
-            result = await billsApi.update(id, body);
-            break;
-          }
-          case 'DELETE_BILL':
-            await billsApi.remove(action.payload);
-            break;
-          case 'ADD_PAYMENT':
-            result = await paymentsApi.create(action.payload);
-            break;
-          case 'DELETE_PAYMENT':
-            await paymentsApi.remove(action.payload);
-            break;
-          default:
-            break;
+  const runAction = useCallback(async (action: Action) => {
+    setError(null);
+    const current = () => stateRef.current;
+    try {
+      let result: unknown;
+      switch (action.type) {
+        case 'ADD_PRODUCT': {
+          const created = await productsApi.create(stripProduct(action.payload));
+          setState((prev) => ({ ...prev, products: patchList(prev.products, created) }));
+          result = created;
+          break;
         }
-        await refresh();
-        toast.success(successMessage[action.type]);
-        return result;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Action failed';
-        setError(message);
-        toast.error(message);
-        throw err;
+        case 'UPDATE_PRODUCT': {
+          const updated = await productsApi.update(action.payload.id, stripProduct(action.payload));
+          setState((prev) => ({
+            ...prev,
+            products: prev.products.map((p) => (p.id === updated.id ? updated : p)),
+          }));
+          result = updated;
+          break;
+        }
+        case 'DELETE_PRODUCT': {
+          await productsApi.remove(action.payload);
+          setState((prev) => ({
+            ...prev,
+            products: prev.products.filter((p) => p.id !== action.payload),
+          }));
+          break;
+        }
+        case 'ADD_CUSTOMER': {
+          const created = await customersApi.create(action.payload);
+          setState((prev) => ({ ...prev, customers: patchList(prev.customers, created) }));
+          result = created;
+          break;
+        }
+        case 'UPDATE_CUSTOMER': {
+          const updated = await customersApi.update(action.payload.id, stripCustomer(action.payload));
+          setState((prev) => ({
+            ...prev,
+            customers: prev.customers.map((c) => (c.id === updated.id ? updated : c)),
+          }));
+          result = updated;
+          break;
+        }
+        case 'DELETE_CUSTOMER': {
+          await customersApi.remove(action.payload);
+          setState((prev) => ({
+            ...prev,
+            customers: prev.customers.filter((c) => c.id !== action.payload),
+          }));
+          break;
+        }
+        case 'ADD_BILL': {
+          const created = await billsApi.create(action.payload, action.idempotencyKey);
+          setState((prev) => ({
+            products: adjustStockForBill(prev.products, created, 'apply'),
+            customers: adjustCustomerBalanceForBill(prev.customers, created, 'apply'),
+            bills: patchList(prev.bills, created),
+            payments: prev.payments,
+          }));
+          result = created;
+          break;
+        }
+        case 'UPDATE_BILL': {
+          const oldBill =
+            current().bills.find((b) => b.id === action.payload.id) ??
+            (await billsApi.get(action.payload.id));
+          const updated = await billsApi.update(action.payload.id, {
+            customerId: action.payload.customerId,
+            customerName: action.payload.customerName,
+            items: action.payload.items,
+            subtotal: action.payload.subtotal,
+            discount: action.payload.discount,
+            total: action.payload.total,
+            paidAmount: action.payload.paidAmount,
+            paymentMethod: action.payload.paymentMethod,
+            notes: action.payload.notes,
+          });
+          setState((prev) => ({
+            products: adjustStockForBill(
+              adjustStockForBill(prev.products, oldBill, 'reverse'),
+              updated,
+              'apply',
+            ),
+            customers: adjustCustomerBalanceOnEdit(prev.customers, oldBill, updated),
+            bills: prev.bills.map((b) => (b.id === updated.id ? updated : b)),
+            payments: prev.payments,
+          }));
+          result = updated;
+          break;
+        }
+        case 'DELETE_BILL': {
+          const oldBill =
+            current().bills.find((b) => b.id === action.payload) ??
+            (await billsApi.get(action.payload));
+          await billsApi.remove(action.payload);
+          setState((prev) => ({
+            products: adjustStockForBill(prev.products, oldBill, 'reverse'),
+            customers: adjustCustomerBalanceForBill(prev.customers, oldBill, 'reverse'),
+            bills: prev.bills.filter((b) => b.id !== action.payload),
+            payments: prev.payments,
+          }));
+          break;
+        }
+        case 'ADD_PAYMENT': {
+          const created = await paymentsApi.create(action.payload, action.idempotencyKey);
+          setState((prev) => ({
+            ...prev,
+            customers: adjustCustomerBalanceForPayment(prev.customers, created, 'apply'),
+            payments: patchList(prev.payments, created),
+          }));
+          result = created;
+          break;
+        }
+        case 'DELETE_PAYMENT': {
+          const oldPay = current().payments.find((p) => p.id === action.payload);
+          await paymentsApi.remove(action.payload);
+          setState((prev) => ({
+            ...prev,
+            customers: oldPay
+              ? adjustCustomerBalanceForPayment(prev.customers, oldPay, 'reverse')
+              : prev.customers,
+            payments: prev.payments.filter((p) => p.id !== action.payload),
+          }));
+          break;
+        }
+        default:
+          break;
       }
+      toast.success(successMessage[action.type]);
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Action failed';
+      setError(message);
+      toast.error(message);
+      throw err;
+    }
+  }, [toast]);
+
+  const dispatch = useCallback(
+    (action: Action) => {
+      const key = lockKey(action);
+      if (key) {
+        const existing = inflight.current.get(key);
+        if (existing) return existing;
+      }
+      const pending = runAction(action).finally(() => {
+        if (key) inflight.current.delete(key);
+      });
+      if (key) inflight.current.set(key, pending);
+      return pending;
     },
-    [refresh, toast],
+    [runAction],
   );
 
   const value = useMemo(

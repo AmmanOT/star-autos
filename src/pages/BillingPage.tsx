@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { newIdempotencyKey } from '../api';
 import { Trash2, Printer, MessageCircle, ShoppingCart } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -50,6 +51,7 @@ export function BillingPage() {
   const [receiptBill, setReceiptBill] = useState<Bill | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     syncCartStock(state.products);
@@ -80,11 +82,12 @@ export function BillingPage() {
   };
 
   const completeBill = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || saving) return;
     const customer = customerId
       ? state.customers.find((c) => c.id === customerId)
       : undefined;
     const paid = paymentMethod === 'credit' ? 0 : (paidAmount || total);
+    setSaving(true);
     try {
       const created = (await dispatch({
         type: 'ADD_BILL',
@@ -99,12 +102,15 @@ export function BillingPage() {
           paymentMethod,
           notes,
         },
+        idempotencyKey: newIdempotencyKey(),
       })) as Bill;
       setReceiptBill(created);
       setShowReceipt(true);
       clearDraft();
     } catch {
       /* toast handled in store */
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -161,7 +167,7 @@ export function BillingPage() {
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)]'
             }`}
           >
-            {t('billRecords')} ({state.bills.length})
+            {t('billRecords')}
           </button>
         </div>
       </div>
@@ -284,8 +290,8 @@ export function BillingPage() {
                   )}
                 </div>
 
-                <Button className="w-full" size="lg" onClick={completeBill} disabled={cart.length === 0}>
-                  {t('completeBill')}
+                <Button className="w-full" size="lg" onClick={() => void completeBill()} disabled={cart.length === 0 || saving}>
+                  {saving ? '…' : t('completeBill')}
                 </Button>
               </div>
             </Card>

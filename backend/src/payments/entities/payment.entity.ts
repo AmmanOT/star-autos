@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { PaymentChannel, PaymentType } from '../../common/enums';
@@ -12,6 +13,7 @@ export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'customer_id', type: 'uuid' })
   customerId: string;
 
@@ -35,6 +37,7 @@ export class Payment {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
+  @Index()
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

@@ -22,6 +22,24 @@ export class ReportsController {
     return this.reportsService.getDashboard();
   }
 
+  @Get('overview')
+  @RequirePermissions(Permission.REPORTS)
+  @ApiOperation({ summary: 'Reports page aggregates for a date range' })
+  @ApiQuery({ name: 'from', required: true })
+  @ApiQuery({ name: 'to', required: true })
+  @ApiQuery({ name: 'period', required: false })
+  getOverview(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('period') period?: 'monthly' | 'yearly',
+  ) {
+    return this.reportsService.getOverview(
+      from,
+      to,
+      period === 'yearly' ? 'yearly' : 'monthly',
+    );
+  }
+
   @Get('sales')
   @RequirePermissions(Permission.REPORTS)
   @ApiOperation({ summary: 'Sales report by date range' })

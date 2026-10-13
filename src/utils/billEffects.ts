@@ -1,4 +1,4 @@
-import type { Bill, Customer, Product } from '../types';
+import type { Bill, Customer, Payment, Product } from '../types';
 
 /** Deduct stock when bill is created/updated; restore when reversed/deleted */
 export function adjustStockForBill(products: Product[], bill: Bill, direction: 'apply' | 'reverse'): Product[] {
@@ -39,11 +39,33 @@ export function recalcBillTotals(items: Bill['items'], discount: number) {
   return { subtotal, total };
 }
 
-/** Same basis as Reports: (sale line) − (current purchase price × qty). */
+export function adjustCustomerBalanceForPayment(
+  customers: Customer[],
+  payment: Payment,
+  direction: 'apply' | 'reverse',
+): Customer[] {
+  const sign = payment.type === 'received' ? -1 : 1;
+  const delta = (direction === 'apply' ? 1 : -1) * sign * payment.amount;
+  return customers.map((c) =>
+    c.id === payment.customerId ? { ...c, balance: c.balance + delta } : c,
+  );
+}
+
+function upsertById<T extends { id: string }>(list: T[], item: T): T[] {
+  const rest = list.filter((row) => row.id !== item.id);
+  return [item, ...rest];
+}
+
+export function patchList<T extends { id: string }>(list: T[], item: T): T[] {
+  return upsertById(list, item);
+}
+
+/** Profit uses purchase price frozen on the bill line, not later inventory edits. */
 export function billProfit(bill: Pick<Bill, 'items'>, products: Product[]): number {
-  return bill.items.reduce((sum, item) => {
-    const product = products.find((p) => p.id === item.productId);
-    const cost = product ? product.purchasePrice * item.quantity : 0;
-    return sum + (item.total - cost);
+  return (bill.items ?? []).reduce((sum, item) => {
+    const frozen = item.purchasePrice;
+    const fallback = products.find((p) => p.id === item.productId)?.purchasePrice;
+    const unitCost = frozen != null ? frozen : fallback ?? 0;
+    return sum + (item.total - unitCost * item.quantity);
   }, 0);
 }

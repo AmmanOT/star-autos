@@ -51,6 +51,7 @@ export interface BillItem {
   quantity: number;
   unitPrice: number;
   total: number;
+  purchasePrice?: number;
 }
 
 export interface Bill {

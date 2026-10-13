@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Phone } from 'lucide-react';
+import { Plus, Pencil, Phone } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,11 +14,10 @@ import { formatPKR } from '../utils/format';
 import { matchesSearch } from '../utils/search';
 
 export function CustomersPage() {
-  const { state, dispatch } = useStore();
+  const { state } = useStore();
   const { t, lang } = useLanguage();
   const { hasPermission } = useAuth();
   const canEdit = hasPermission('edit');
-  const canDelete = hasPermission('delete');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
@@ -44,15 +43,6 @@ export function CustomersPage() {
 
   const openAdd = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (c: Customer) => { setEditing(c); setModalOpen(true); };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('confirmDelete'))) return;
-    try {
-      await dispatch({ type: 'DELETE_CUSTOMER', payload: id });
-    } catch {
-      /* toast handled in store */
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -90,9 +80,6 @@ export function CustomersPage() {
                 <div className="flex gap-1">
                   {canEdit && (
                     <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => openEdit(c)} />
-                  )}
-                  {canDelete && (
-                    <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => void handleDelete(c.id)} />
                   )}
                 </div>
               </div>
