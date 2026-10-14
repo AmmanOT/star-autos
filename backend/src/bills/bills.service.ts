@@ -57,7 +57,8 @@ export class BillsService {
     }
 
     const { page, limit, skip } = parsePage(filters.page, filters.limit);
-    const [items, total] = await qb.skip(skip).take(limit).getManyAndCount();
+    const total = await qb.clone().getCount();
+    const items = await qb.skip(skip).take(limit).getMany();
     return paginated(items, total, page, limit);
   }
 

@@ -86,7 +86,7 @@ export class ReportsService {
         .createQueryBuilder('p')
         .where('p.quantity <= p.min_stock')
         .orderBy('p.quantity', 'ASC')
-        .take(8)
+        .addOrderBy('p.name', 'ASC')
         .getMany(),
       this.billsRepository.find({
         select: ['id', 'billNumber', 'customerName', 'total', 'createdAt'],

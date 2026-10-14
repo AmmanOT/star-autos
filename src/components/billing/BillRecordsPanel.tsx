@@ -15,6 +15,7 @@ import { SearchInput } from '../ui/SearchInput';
 import { ThermalReceipt } from './ThermalReceipt';
 import { CustomerFormModal } from '../customers/CustomerFormModal';
 import { BulkPrintBillsButton } from './BulkPrintBills';
+import { Pagination } from '../ui/Pagination';
 import type { Bill, BillItem, Customer } from '../../types';
 import { availableQtyForEdit, billProfit, recalcBillTotals } from '../../utils/billEffects';
 import { printThermalReceipt } from '../../utils/printReceipt';
@@ -28,6 +29,7 @@ import {
 import { productMatchesSearch } from '../../utils/search';
 
 const ADD_NEW_CUSTOMER = '__add_new__';
+const PAGE_SIZE = 50;
 
 interface CartItem extends BillItem {
   maxQty: number;
@@ -62,29 +64,37 @@ export function BillRecordsPanel() {
     setPage(1);
   }, [debouncedSearch, customerFilter, paymentFilter, dateFrom, dateTo]);
 
-  const loadBills = useCallback(async () => {
+  const loadBills = useCallback(async (opts?: { ignore?: boolean }) => {
     const res = await billsApi.list({
       page,
-      limit: 50,
+      limit: PAGE_SIZE,
       search: debouncedSearch.trim() || undefined,
       customerId: customerFilter === 'all' ? undefined : customerFilter,
       paymentMethod: paymentFilter === 'all' ? undefined : paymentFilter,
       from: dateFrom || undefined,
       to: dateTo || undefined,
     });
+    if (opts?.ignore) return;
     setBills(res.items);
     setTotal(res.total);
+    const maxPage = Math.max(1, Math.ceil(res.total / PAGE_SIZE));
+    if (page > maxPage) setPage(maxPage);
   }, [page, debouncedSearch, customerFilter, paymentFilter, dateFrom, dateTo]);
 
   useEffect(() => {
-    void loadBills().catch(() => {
-      setBills([]);
-      setTotal(0);
+    const req = { ignore: false };
+    void loadBills(req).catch(() => {
+      if (!req.ignore) {
+        setBills([]);
+        setTotal(0);
+      }
     });
+    return () => {
+      req.ignore = true;
+    };
   }, [loadBills]);
 
   const filtered = bills;
-  const pageCount = Math.max(1, Math.ceil(total / 50));
 
   const openView = (bill: Bill) => { setSelectedBill(bill); setModalMode('view'); };
   const openEdit = (bill: Bill) => { setSelectedBill(bill); setModalMode('edit'); };
@@ -184,16 +194,14 @@ export function BillRecordsPanel() {
             <p className="text-center py-10 text-[var(--color-text-muted)]">{t('noResults')}</p>
           )}
         </div>
-        <p className="text-xs text-[var(--color-text-muted)] mt-4 pt-3 border-t border-[var(--color-border)]">
-          {filtered.length} / {total} bills
-          {pageCount > 1 && (
-            <span className="ms-3 inline-flex gap-2">
-              <button type="button" className="underline disabled:no-underline disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</button>
-              <span>{page}/{pageCount}</span>
-              <button type="button" className="underline disabled:no-underline disabled:opacity-40" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)}>Next</button>
-            </span>
-          )}
-        </p>
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          shown={filtered.length}
+          onPage={setPage}
+          unit="bills"
+        />
       </Card>
 
       {selectedBill && (

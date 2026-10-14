@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -39,10 +40,14 @@ export function InventoryPage() {
   const canEdit = hasPermission('edit');
   const canDelete = hasPermission('delete');
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('all');
   const [catFilter, setCatFilter] = useState('all');
   const [vehicleFilter, setVehicleFilter] = useState('all');
+  const [stockFilter, setStockFilter] = useState(
+    searchParams.get('stock') === 'low' ? 'low' : 'all',
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyProduct());
@@ -77,12 +82,25 @@ export function InventoryPage() {
     return name;
   };
 
+  useEffect(() => {
+    setStockFilter(searchParams.get('stock') === 'low' ? 'low' : 'all');
+  }, [searchParams]);
+
+  const setStock = (value: string) => {
+    setStockFilter(value);
+    const next = new URLSearchParams(searchParams);
+    if (value === 'low') next.set('stock', 'low');
+    else next.delete('stock');
+    setSearchParams(next, { replace: true });
+  };
+
   const filtered = state.products.filter((p) => {
     const matchSearch = productMatchesSearch(search, p);
     const matchBrand = brandFilter === 'all' || p.brand === brandFilter;
     const matchCat = catFilter === 'all' || p.category === catFilter;
     const matchVehicle = vehicleFilter === 'all' || p.vehicleModels.includes(vehicleFilter);
-    return matchSearch && matchBrand && matchCat && matchVehicle;
+    const matchStock = stockFilter !== 'low' || isLowStock(p.quantity, p.minStock);
+    return matchSearch && matchBrand && matchCat && matchVehicle && matchStock;
   });
 
   const openAdd = () => {
@@ -175,6 +193,16 @@ export function InventoryPage() {
           options={[
             { value: 'all', label: t('all') },
             ...vehicles.map((v) => ({ value: v.name, label: v.name })),
+          ]}
+          className="lg:w-40"
+        />
+        <Select
+          label={t('stock')}
+          value={stockFilter}
+          onChange={(e) => setStock(e.target.value)}
+          options={[
+            { value: 'all', label: t('all') },
+            { value: 'low', label: t('lowStock') },
           ]}
           className="lg:w-40"
         />

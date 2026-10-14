@@ -64,10 +64,11 @@ export function DashboardPage() {
   const todaySales = api?.todaySales || todayExtra.sales;
   const todayBillCount = api?.todayBillCount || todayExtra.count;
   const billsThisMonth = api?.billsThisMonth ?? 0;
-  const lowStockItems = (api?.lowStock?.length
-    ? api.lowStock
-    : state.products.filter((p) => isLowStock(p.quantity, p.minStock))
-  ).slice(0, 8);
+  const storeLowStock = state.products
+    .filter((p) => isLowStock(p.quantity, p.minStock))
+    .sort((a, b) => a.quantity - b.quantity || a.name.localeCompare(b.name));
+  const lowStockItems = storeLowStock.length > 0 ? storeLowStock : (api?.lowStock ?? []);
+  const lowStockCount = Math.max(api?.lowStockCount ?? 0, lowStockItems.length);
   const recentBills = api?.recentBills?.length ? api.recentBills : todayExtra.recent;
 
   return (
@@ -117,16 +118,25 @@ export function DashboardPage() {
         </Card>
 
         <div className="space-y-4">
-          <Card title={t('lowStock')}>
+          <Card
+            title={t('lowStock')}
+            action={
+              <Link to="/admin/inventory?stock=low" className="text-sm text-brand-600 hover:underline flex items-center gap-1">
+                {t('viewAll')} <ArrowRight size={14} />
+              </Link>
+            }
+          >
             {lowStockItems.length === 0 ? (
               <p className="text-sm text-[var(--color-text-muted)]">{t('noResults')}</p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="space-y-3 max-h-80 overflow-y-auto pe-1">
                 {lowStockItems.map((p) => (
                   <li key={p.id} className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{lang === 'ur' ? p.nameUrdu : p.name}</p>
-                      <p className="text-xs text-[var(--color-text-muted)]">{p.partNumber}</p>
+                      <p className="text-sm font-medium truncate">{lang === 'ur' ? p.nameUrdu || p.name : p.name}</p>
+                      {p.partNumber ? (
+                        <p className="text-xs text-[var(--color-text-muted)]">{p.partNumber}</p>
+                      ) : null}
                     </div>
                     <Badge variant="danger">{p.quantity} left</Badge>
                   </li>
@@ -143,7 +153,7 @@ export function DashboardPage() {
               <div className="flex justify-between"><span className="text-[var(--color-text-muted)]">{t('billsThisMonth')}</span><span className="font-semibold">{billsThisMonth}</span></div>
               <div className="flex justify-between items-center">
                 <span className="text-[var(--color-text-muted)]">{t('lowStock')}</span>
-                <Badge variant="warning"><AlertTriangle size={12} className="me-1" />{api?.lowStockCount || lowStockItems.length}</Badge>
+                <Badge variant="warning"><AlertTriangle size={12} className="me-1" />{lowStockCount}</Badge>
               </div>
             </div>
           </Card>

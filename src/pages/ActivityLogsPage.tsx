@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { Pagination } from '../components/ui/Pagination';
 import { formatDate } from '../utils/format';
 
 type Filter = 'all' | 'payment' | 'bill';
@@ -146,15 +147,14 @@ export function ActivityLogsPage() {
             </table>
           </div>
         )}
-        {total > pageSize && (
-          <p className="text-xs text-[var(--color-text-muted)] mt-4 pt-3 border-t border-[var(--color-border)]">
-            {logs.length} / {total}
-            <span className="ms-3 inline-flex gap-2">
-              <button type="button" className="underline disabled:no-underline disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</button>
-              <span>{page}/{Math.max(1, Math.ceil(total / pageSize))}</span>
-              <button type="button" className="underline disabled:no-underline disabled:opacity-40" disabled={page >= Math.ceil(total / pageSize)} onClick={() => setPage((p) => p + 1)}>Next</button>
-            </span>
-          </p>
+        {!loading && (
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            shown={logs.length}
+            onPage={setPage}
+          />
         )}
       </Card>
     </div>
