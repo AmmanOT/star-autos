@@ -468,8 +468,11 @@ export class BillsService {
     const year = new Date().getFullYear();
     const prefix = `INV-${year}-`;
 
+    // Include soft-deleted bills: bill_number stays unique after delete,
+    // so skipping them reuses INV-… and Postgres rejects the insert.
     const latest = await manager
       .createQueryBuilder(Bill, 'bill')
+      .withDeleted()
       .setLock('pessimistic_write')
       .where('bill.billNumber LIKE :prefix', { prefix: `${prefix}%` })
       .orderBy('bill.billNumber', 'DESC')
@@ -484,6 +487,17 @@ export class BillsService {
       }
     }
 
-    return `${prefix}${String(next).padStart(4, '0')}`;
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const billNumber = `${prefix}${String(next).padStart(4, '0')}`;
+      const taken = await manager
+        .createQueryBuilder(Bill, 'bill')
+        .withDeleted()
+        .where('bill.billNumber = :billNumber', { billNumber })
+        .getExists();
+      if (!taken) return billNumber;
+      next += 1;
+    }
+
+    throw new BadRequestException('Could not allocate a bill number. Please try again.');
   }
 }
