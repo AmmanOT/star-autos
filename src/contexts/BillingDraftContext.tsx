@@ -135,7 +135,16 @@ export function BillingDraftProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setCustomerId = useCallback((customerId: string) => {
-    setDraft((prev) => ({ ...prev, customerId }));
+    setDraft((prev) => {
+      if (prev.customerId === customerId) return prev;
+      const namedCustomer = Boolean(customerId);
+      return {
+        ...prev,
+        customerId,
+        paymentMethod: namedCustomer ? 'credit' : 'cash',
+        paidAmount: namedCustomer ? 0 : prev.paidAmount,
+      };
+    });
   }, []);
 
   const setDiscount = useCallback((discount: number) => {

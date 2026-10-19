@@ -23,6 +23,10 @@ export function ThermalReceipt({
   const { t } = useLanguage();
   const { state } = useStore();
   const due = bill.total - bill.paidAmount;
+  const customer = bill.customerId
+    ? state.customers.find((c) => c.id === bill.customerId)
+    : undefined;
+  const ledgerBalance = customer ? Number(customer.balance) : null;
 
   const itemBrand = (productId: string, saved?: string) =>
     saved || state.products.find((p) => p.id === productId)?.brand || '—';
@@ -120,6 +124,12 @@ export function ThermalReceipt({
           <div className="receipt-row font-bold text-[12px]">
             <span className="receipt-label">{t('due')}</span>
             <span className="receipt-value">{formatPKR(due)}</span>
+          </div>
+        )}
+        {ledgerBalance != null && (
+          <div className="receipt-row receipt-total-row">
+            <span className="receipt-label font-bold text-[12px] uppercase">{t('totalBalance')}</span>
+            <span className="receipt-value font-bold text-[13px]">{formatPKR(ledgerBalance)}</span>
           </div>
         )}
       </div>
