@@ -157,9 +157,11 @@ export function InventoryPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">{t('inventory')}</h1>
-        <Button icon={<Plus size={16} />} onClick={openAdd}>
-          {t('addProduct')}
-        </Button>
+        {canEdit && (
+          <Button icon={<Plus size={16} />} onClick={openAdd}>
+            {t('addProduct')}
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row lg:items-end gap-3">

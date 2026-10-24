@@ -114,8 +114,8 @@ export function SettingsPage() {
       <Card title={t('shopInfo')}>
         <div className="space-y-2 text-sm">
           <p className="font-semibold">{t('shopInfo')}</p>
-          <p className="text-[var(--color-text-muted)]">{t('shopAddress')}</p>
-          <p className="text-[var(--color-text-muted)]">{t('shopPhone')}</p>
+          <p className="text-[var(--color-text-muted)]">{isDemo ? t('demoShopAddress') : t('shopAddress')}</p>
+          <p className="text-[var(--color-text-muted)]">{isDemo ? t('demoShopPhone') : t('shopPhone')}</p>
         </div>
       </Card>
 

@@ -18,6 +18,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { ReportsModule } from './reports/reports.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { SeedModule } from './database/seed.module';
+import { DemoModule } from './demo/demo.module';
 import { DatabaseTuneModule } from './database/database-tune.module';
 import { ActivityLogsModule } from './activity-logs/activity-logs.module';
 import { HealthController } from './health.controller';
@@ -93,6 +94,7 @@ import { ActivityLog } from './activity-logs/entities/activity-log.entity';
     CatalogModule,
     ActivityLogsModule,
     SeedModule,
+    DemoModule,
   ],
   controllers: [HealthController],
   providers: [

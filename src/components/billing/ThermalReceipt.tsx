@@ -1,5 +1,6 @@
 import type { Bill } from '../../types';
 import { formatDate, formatPKR } from '../../utils/format';
+import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useStore } from '../../contexts/StoreContext';
 
@@ -21,7 +22,10 @@ export function ThermalReceipt({
   showClosing = true,
 }: ThermalReceiptProps) {
   const { t } = useLanguage();
+  const { isDemo } = useAuth();
   const { state } = useStore();
+  const shopAddress = isDemo ? t('demoShopAddress') : t('shopAddress');
+  const shopPhone = isDemo ? t('demoShopPhone') : t('shopPhone');
   const due = bill.total - bill.paidAmount;
   const customer = bill.customerId
     ? state.customers.find((c) => c.id === bill.customerId)
@@ -47,8 +51,8 @@ export function ThermalReceipt({
             <p className="text-[11px] mt-1 tracking-wide">
               Auto Spare Parts
             </p>
-            <p className="text-[11px] mt-2 leading-snug">{t('shopAddress')}</p>
-            <p className="text-[11px] font-bold mt-1">{t('shopPhone')}</p>
+            <p className="text-[11px] mt-2 leading-snug">{shopAddress}</p>
+            <p className="text-[11px] font-bold mt-1">{shopPhone}</p>
           </div>
           <div className="receipt-rule mx-2" />
         </>

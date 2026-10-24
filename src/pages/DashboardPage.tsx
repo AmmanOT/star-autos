@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Users, Receipt, AlertTriangle, TrendingUp, ArrowRight } from 'lucide-react';
 import { reportsApi, type DashboardSummary } from '../api';
+import { useAuth } from '../contexts/AuthContext';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -11,6 +12,7 @@ import { addIsoDays, formatPKR, formatDateShort, isLowStock, todayPkDateKey } fr
 import type { Bill } from '../types';
 
 export function DashboardPage() {
+  const { isDemo } = useAuth();
   const { state } = useStore();
   const { t, lang } = useLanguage();
   const { hideFinancials } = usePrivacy();
@@ -75,7 +77,7 @@ export function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{t('dashboard')}</h1>
-        <p className="text-[var(--color-text-muted)] text-sm mt-1">{t('shopInfo')} — {t('shopAddress')}</p>
+        <p className="text-[var(--color-text-muted)] text-sm mt-1">{t('shopInfo')} — {isDemo ? t('demoShopAddress') : t('shopAddress')}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
