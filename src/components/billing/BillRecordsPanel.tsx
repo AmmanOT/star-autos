@@ -38,7 +38,7 @@ interface CartItem extends BillItem {
 export function BillRecordsPanel() {
   const { state, dispatch } = useStore();
   const { t } = useLanguage();
-  const { isAdmin, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const { hideFinancials } = usePrivacy();
   const canEdit = hasPermission('edit');
   const canDelete = hasPermission('delete');
@@ -148,7 +148,7 @@ export function BillRecordsPanel() {
                 <th className="text-start px-3 py-2">{t('customer')}</th>
                 <th className="text-start px-3 py-2">{t('items')}</th>
                 <th className="text-end px-3 py-2">{t('total')}</th>
-                {isAdmin && !hideFinancials && <th className="text-end px-3 py-2">{t('profit')}</th>}
+                {!hideFinancials && <th className="text-end px-3 py-2">{t('profit')}</th>}
                 <th className="text-end px-3 py-2">{t('paid')}</th>
                 <th className="text-end px-3 py-2">{t('due')}</th>
                 <th className="text-start px-3 py-2">{t('paymentMethod')}</th>
@@ -165,7 +165,7 @@ export function BillRecordsPanel() {
                     <td className="px-3 py-3">{bill.customerName ?? t('walkIn')}</td>
                     <td className="px-3 py-3 text-[var(--color-text-muted)]">{bill.items?.length ?? 0}</td>
                     <td className="px-3 py-3 text-end font-medium">{formatPKR(bill.total)}</td>
-                    {isAdmin && !hideFinancials && (
+                    {!hideFinancials && (
                       <td className="px-3 py-3 text-end font-medium text-emerald-600">{formatPKR(billProfit(bill, state.products))}</td>
                     )}
                     <td className="px-3 py-3 text-end">{formatPKR(bill.paidAmount)}</td>
@@ -227,7 +227,7 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit, onSaved }: {
 }) {
   const { state, dispatch } = useStore();
   const { t, lang } = useLanguage();
-  const { isAdmin, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const { hideFinancials } = usePrivacy();
   const canEdit = hasPermission('edit');
   const isEdit = mode === 'edit';
@@ -375,6 +375,9 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit, onSaved }: {
                     <span className="font-medium">{lang === 'ur' ? p.nameUrdu : p.name}</span>
                     {p.brand ? <span className="text-[var(--color-text-muted)]"> · {p.brand}</span> : null}
                     <span> — {formatPKR(p.salePrice)}</span>
+                    {(p.retailPrice ?? 0) > 0 ? (
+                      <span className="text-[var(--color-text-muted)]"> · {t('retailPrice')} {formatPKR(p.retailPrice ?? 0)}</span>
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -446,7 +449,7 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit, onSaved }: {
             <div><span className="text-[var(--color-text-muted)]">{t('date')}: </span>{formatDate(bill.createdAt)}</div>
             <div><span className="text-[var(--color-text-muted)]">{t('customer')}: </span>{bill.customerName ?? t('walkIn')}</div>
             <div><span className="text-[var(--color-text-muted)]">{t('paymentMethod')}: </span>{paymentLabel(bill.paymentMethod)}</div>
-            {isAdmin && !hideFinancials && (
+            {!hideFinancials && (
               <div><span className="text-[var(--color-text-muted)]">{t('profit')}: </span><span className="font-medium text-emerald-600">{formatPKR(billProfit(bill, state.products))}</span></div>
             )}
           </div>

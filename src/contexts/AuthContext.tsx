@@ -19,6 +19,7 @@ interface AuthContextValue {
   logout: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   isAdmin: boolean;
+  isDemo: boolean;
   hasPermission: (permission: Permission) => boolean;
   homePath: string;
 }
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isAdmin = user?.role === 'admin';
+  const isDemo = user?.role === 'demo';
 
   const value = useMemo(
     () => ({
@@ -76,10 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       changePassword,
       isAdmin,
+      isDemo,
       hasPermission: (permission: Permission) => hasPermission(user, permission),
       homePath: homePath(user),
     }),
-    [user, loading, login, logout, changePassword, isAdmin],
+    [user, loading, login, logout, changePassword, isAdmin, isDemo],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -94,5 +97,6 @@ export function useAuth() {
 export function roleLabel(role: UserRole, t: (k: import('../i18n/translations').TranslationKey) => string) {
   if (role === 'admin') return t('admin');
   if (role === 'customer') return t('customer');
+  if (role === 'demo') return t('demo');
   return t('employee');
 }

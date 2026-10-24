@@ -36,7 +36,7 @@ export default function App() {
 
                   <Route element={<ProtectedRoute />}>
                     <Route path="/admin" element={<MainLayout />}>
-                      <Route element={<ProtectedRoute adminOnly />}>
+                      <Route element={<ProtectedRoute permission="dashboard" />}>
                         <Route index element={<DashboardPage />} />
                       </Route>
                       <Route element={<ProtectedRoute permission="inventory" />}>
@@ -51,10 +51,10 @@ export default function App() {
                       <Route element={<ProtectedRoute permission="ledger" />}>
                         <Route path="ledger" element={<LedgerPage />} />
                       </Route>
-                      <Route element={<ProtectedRoute adminOnly />}>
+                      <Route element={<ProtectedRoute permission="reports" />}>
                         <Route path="reports" element={<ReportsPage />} />
                       </Route>
-                      <Route element={<ProtectedRoute adminOnly />}>
+                      <Route element={<ProtectedRoute permission="activityLogs" />}>
                         <Route path="activity-logs" element={<ActivityLogsPage />} />
                       </Route>
                       <Route element={<ProtectedRoute adminOnly />}>

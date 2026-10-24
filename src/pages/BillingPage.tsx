@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { newIdempotencyKey } from '../api';
 import { Trash2, Printer, MessageCircle, ShoppingCart } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useBillingDraft } from '../contexts/BillingDraftContext';
@@ -23,6 +24,7 @@ type Tab = 'new' | 'records';
 const ADD_NEW_CUSTOMER = '__add_new__';
 
 export function BillingPage() {
+  const { isDemo } = useAuth();
   const { state, dispatch } = useStore();
   const { t, lang } = useLanguage();
   const {
@@ -82,7 +84,7 @@ export function BillingPage() {
   };
 
   const completeBill = async () => {
-    if (cart.length === 0 || saving) return;
+    if (isDemo || cart.length === 0 || saving) return;
     const customer = customerId
       ? state.customers.find((c) => c.id === customerId)
       : undefined;
@@ -196,6 +198,11 @@ export function BillingPage() {
                       </div>
                       <div className="text-end">
                         <p className="font-semibold">{formatPKR(p.salePrice)}</p>
+                        {(p.retailPrice ?? 0) > 0 && (
+                          <p className="text-xs text-[var(--color-text-muted)]">
+                            {t('retailPrice')}: {formatPKR(p.retailPrice ?? 0)}
+                          </p>
+                        )}
                         <p className="text-xs text-[var(--color-text-muted)]">{t('stock')}: {p.quantity}</p>
                       </div>
                     </button>
@@ -214,7 +221,9 @@ export function BillingPage() {
                 </div>
               ) : (
                 <div className="space-y-3 -m-2">
-                  {cart.map((item, index) => (
+                  {cart.map((item, index) => {
+                    const retail = state.products.find((p) => p.id === item.productId)?.retailPrice ?? 0;
+                    return (
                     <div key={item.productId} className="flex items-center gap-3 p-3 rounded-lg bg-[var(--color-surface-elevated)]">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-800 dark:bg-brand-900/60 dark:text-brand-200">
                         {index + 1}
@@ -226,6 +235,7 @@ export function BillingPage() {
                         <p className="font-medium truncate">{item.productName}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">
                           {item.brand ? `${item.brand} · ` : ''}{t('rate')}
+                          {retail > 0 ? ` · ${t('retailPrice')} ${formatPKR(retail)}` : ''}
                         </p>
                       </div>
                       <input
@@ -245,7 +255,8 @@ export function BillingPage() {
                       <p className="font-semibold w-24 text-end">{formatPKR(item.total)}</p>
                       <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => removeItem(item.productId)} />
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </Card>
@@ -260,7 +271,7 @@ export function BillingPage() {
                   onChange={(e) => handleCustomerSelect(e.target.value)}
                   options={[
                     { value: '', label: t('walkIn') },
-                    { value: ADD_NEW_CUSTOMER, label: t('addNew') },
+                    ...(isDemo ? [] : [{ value: ADD_NEW_CUSTOMER, label: t('addNew') }]),
                     ...state.customers.map((c) => ({ value: c.id, label: `${c.name} (${c.phone})` })),
                   ]}
                 />
@@ -290,9 +301,12 @@ export function BillingPage() {
                   )}
                 </div>
 
-                <Button className="w-full" size="lg" onClick={() => void completeBill()} disabled={cart.length === 0 || saving}>
+                <Button className="w-full" size="lg" onClick={() => void completeBill()} disabled={isDemo || cart.length === 0 || saving} title={isDemo ? t('demoCannotComplete') : undefined}>
                   {saving ? '…' : t('completeBill')}
                 </Button>
+                {isDemo && (
+                  <p className="text-xs text-center text-amber-600 dark:text-amber-400">{t('demoCannotComplete')}</p>
+                )}
               </div>
             </Card>
           </div>

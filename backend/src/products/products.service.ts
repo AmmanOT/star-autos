@@ -69,6 +69,7 @@ export class ProductsService {
       category: dto.category ?? '',
       vehicleModels: dto.vehicleModels ?? [],
       minStock: dto.minStock ?? 0,
+      retailPrice: dto.retailPrice ?? 0,
       location: dto.location ?? null,
     });
     return this.productsRepository.save(product);

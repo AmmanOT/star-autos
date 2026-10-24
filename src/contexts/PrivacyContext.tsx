@@ -11,7 +11,7 @@ interface PrivacyContextValue {
 const PrivacyContext = createContext<PrivacyContextValue | null>(null);
 
 export function PrivacyProvider({ children }: { children: ReactNode }) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isDemo } = useAuth();
   const [hidden, setHidden] = useState(() => {
     if (typeof sessionStorage === 'undefined') return false;
     return sessionStorage.getItem(STORAGE_KEY) === '1' || sessionStorage.getItem('privacy-blur') === '1';
@@ -28,10 +28,10 @@ export function PrivacyProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      hideFinancials: !isAdmin || hidden,
+      hideFinancials: !(isAdmin || isDemo) || hidden,
       toggleFinancials,
     }),
-    [isAdmin, hidden, toggleFinancials],
+    [isAdmin, isDemo, hidden, toggleFinancials],
   );
 
   return <PrivacyContext.Provider value={value}>{children}</PrivacyContext.Provider>;

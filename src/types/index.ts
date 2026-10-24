@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'employee' | 'customer';
+export type UserRole = 'admin' | 'employee' | 'customer' | 'demo';
 
 export type Permission =
   | 'dashboard'
@@ -24,6 +24,7 @@ export interface Product {
   vehicleModels: string[];
   purchasePrice: number;
   salePrice: number;
+  retailPrice?: number;
   quantity: number;
   minStock: number;
   location?: string;

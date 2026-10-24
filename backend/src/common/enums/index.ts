@@ -2,6 +2,7 @@ export enum UserRole {
   ADMIN = 'admin',
   EMPLOYEE = 'employee',
   CUSTOMER = 'customer',
+  DEMO = 'demo',
 }
 
 export enum Permission {

@@ -15,6 +15,7 @@ const STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers (phone)`,
   `ALTER TABLE bills ADD COLUMN IF NOT EXISTS deleted_at timestamptz`,
   `CREATE INDEX IF NOT EXISTS idx_bills_deleted_at ON bills (deleted_at)`,
+  `ALTER TABLE products ADD COLUMN IF NOT EXISTS retail_price numeric(12,2) NOT NULL DEFAULT 0`,
 ];
 
 const BACKFILL_PURCHASE_PRICE = `UPDATE bills b

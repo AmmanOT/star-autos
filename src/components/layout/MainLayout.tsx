@@ -20,19 +20,19 @@ const navLinks: {
   permission?: Permission;
   adminOnly?: boolean;
 }[] = [
-  { to: '/admin', icon: LayoutDashboard, key: 'dashboard', adminOnly: true },
+  { to: '/admin', icon: LayoutDashboard, key: 'dashboard', permission: 'dashboard' },
   { to: '/admin/inventory', icon: Package, key: 'inventory', permission: 'inventory' },
   { to: '/admin/customers', icon: Users, key: 'customers', permission: 'customers' },
   { to: '/admin/billing', icon: Receipt, key: 'billing', permission: 'billing' },
   { to: '/admin/ledger', icon: BookOpen, key: 'ledger', permission: 'ledger' },
-  { to: '/admin/reports', icon: BarChart3, key: 'reports', adminOnly: true },
-  { to: '/admin/activity-logs', icon: ScrollText, key: 'activityLogs', adminOnly: true },
+  { to: '/admin/reports', icon: BarChart3, key: 'reports', permission: 'reports' },
+  { to: '/admin/activity-logs', icon: ScrollText, key: 'activityLogs', permission: 'activityLogs' },
   { to: '/admin/employees', icon: UserCog, key: 'employees', adminOnly: true },
   { to: '/admin/settings', icon: Settings, key: 'settings' },
 ];
 
 export function MainLayout() {
-  const { user, logout, isAdmin, hasPermission } = useAuth();
+  const { user, logout, isAdmin, isDemo, hasPermission } = useAuth();
   const { t, lang, setLang } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const { hideFinancials, toggleFinancials } = usePrivacy();
@@ -84,7 +84,10 @@ export function MainLayout() {
         </nav>
 
         <div className="p-4 border-t border-[var(--color-border)] space-y-3">
-          {!isAdmin && !isCustomer && (
+          {isDemo && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 px-1">{t('demoReadOnly')}</p>
+          )}
+          {!isAdmin && !isCustomer && !isDemo && (
             <p className="text-xs text-amber-600 dark:text-amber-400 px-1">{t('limitedAccess')}</p>
           )}
           <div className="flex items-center gap-2 px-1">
@@ -93,8 +96,8 @@ export function MainLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user?.name}</p>
-              <Badge variant={isAdmin ? 'info' : 'default'}>
-                {isAdmin ? t('admin') : isCustomer ? t('customer') : t('employee')}
+              <Badge variant={isAdmin || isDemo ? 'info' : 'default'}>
+                {isAdmin ? t('admin') : isDemo ? t('demo') : isCustomer ? t('customer') : t('employee')}
               </Badge>
             </div>
           </div>
@@ -128,7 +131,7 @@ export function MainLayout() {
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
-            {isAdmin && (
+            {(isAdmin || isDemo) && (
             <button
               onClick={toggleFinancials}
               className={`p-2 rounded-lg border ${

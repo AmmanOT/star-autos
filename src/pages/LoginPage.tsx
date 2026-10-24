@@ -92,6 +92,7 @@ export function LoginPage() {
             <Button type="submit" className="w-full" size="lg" disabled={submitting}>
               {submitting ? '…' : t('login')}
             </Button>
+            <p className="text-center text-xs text-[var(--color-text-muted)]">{t('demoLoginHint')}</p>
           </form>
         </div>
 

@@ -11,7 +11,7 @@ import { Input } from '../components/ui/Input';
 export function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang, t } = useLanguage();
-  const { user, isAdmin, changePassword } = useAuth();
+  const { user, isAdmin, isDemo, changePassword } = useAuth();
   const { refresh, loading } = useStore();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -71,11 +71,14 @@ export function SettingsPage() {
         <div className="space-y-2 text-sm">
           <p><span className="text-[var(--color-text-muted)]">{t('name')}:</span> {user?.name}</p>
           <p><span className="text-[var(--color-text-muted)]">{t('username')}:</span> {user?.username}</p>
-          <p><span className="text-[var(--color-text-muted)]">{t('type')}:</span> {user?.role === 'customer' ? t('customer') : isAdmin ? t('admin') : t('employee')}</p>
+          <p><span className="text-[var(--color-text-muted)]">{t('type')}:</span> {user?.role === 'customer' ? t('customer') : isAdmin ? t('admin') : isDemo ? t('demo') : t('employee')}</p>
         </div>
       </Card>
 
       <Card title={t('changePassword')}>
+        {isDemo ? (
+          <p className="text-sm text-[var(--color-text-muted)]">{t('demoReadOnly')}</p>
+        ) : (
         <form onSubmit={(e) => void handleChangePassword(e)} className="space-y-3 max-w-md">
           <Input
             label={t('currentPassword')}
@@ -105,6 +108,7 @@ export function SettingsPage() {
           {pwSuccess && <p className="text-sm text-emerald-600">{pwSuccess}</p>}
           <Button type="submit" disabled={saving}>{saving ? '…' : t('save')}</Button>
         </form>
+        )}
       </Card>
 
       <Card title={t('shopInfo')}>

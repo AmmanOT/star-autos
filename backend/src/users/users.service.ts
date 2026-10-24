@@ -63,6 +63,9 @@ export class UsersService {
 
   async createEmployee(dto: CreateEmployeeDto) {
     const username = normalizeUsername(dto.username);
+    if (username === 'sa' || username === 'demo') {
+      throw new ConflictException('Username is already taken');
+    }
     const existing = await this.findByUsername(username);
     if (existing) {
       throw new ConflictException('Username is already taken');
@@ -85,6 +88,9 @@ export class UsersService {
     const user = await this.findById(id);
     if (user.role === UserRole.ADMIN) {
       throw new ForbiddenException('Cannot edit the Super Admin from employee management');
+    }
+    if (user.role === UserRole.DEMO) {
+      throw new ForbiddenException('Cannot edit the demo login from employee management');
     }
     if (user.role === UserRole.CUSTOMER) {
       throw new ForbiddenException('Cannot edit a customer login from employee management');
@@ -120,6 +126,9 @@ export class UsersService {
     const user = await this.findById(id);
     if (user.role === UserRole.ADMIN) {
       throw new ForbiddenException('Cannot delete the Super Admin');
+    }
+    if (user.role === UserRole.DEMO) {
+      throw new ForbiddenException('Cannot delete the demo login');
     }
     if (user.role === UserRole.CUSTOMER) {
       throw new ForbiddenException('Cannot delete a customer login from employee management');
@@ -209,6 +218,11 @@ export class UsersService {
   effectivePermissions(user: User): Permission[] {
     if (user.role === UserRole.ADMIN) {
       return ALL_PERMISSIONS;
+    }
+    if (user.role === UserRole.DEMO) {
+      return ALL_PERMISSIONS.filter(
+        (permission) => permission !== Permission.EDIT && permission !== Permission.DELETE,
+      );
     }
     if (user.role === UserRole.CUSTOMER) {
       return [];

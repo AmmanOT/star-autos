@@ -50,6 +50,16 @@ export class Product {
   })
   salePrice: number;
 
+  @Column({
+    name: 'retail_price',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: decimalTransformer,
+  })
+  retailPrice: number;
+
   @Column({ type: 'int', default: 0 })
   quantity: number;
 

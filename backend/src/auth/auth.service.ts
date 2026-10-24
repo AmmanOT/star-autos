@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService, normalizeUsername } from '../users/users.service';
+import { UserRole } from '../common/enums';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
@@ -44,6 +45,9 @@ export class AuthService {
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
     const user = await this.usersService.findById(userId);
+    if (user.role === UserRole.DEMO) {
+      throw new UnauthorizedException('Demo account password cannot be changed');
+    }
     const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
     if (!valid) {
       throw new UnauthorizedException('Current password is incorrect');

@@ -47,6 +47,9 @@ export const PERMISSION_ROUTE: Record<PagePermission, string> = {
 export function hasPermission(user: User | null | undefined, permission: Permission): boolean {
   if (!user) return false;
   if (user.role === 'admin') return true;
+  if (user.role === 'demo') {
+    return permission !== 'edit' && permission !== 'delete';
+  }
   if (user.role === 'customer') return permission === 'ledger';
   if ((ADMIN_ONLY_PERMISSIONS as Permission[]).includes(permission)) return false;
   return user.permissions?.includes(permission) ?? false;

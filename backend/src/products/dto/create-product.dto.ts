@@ -56,6 +56,12 @@ export class CreateProductDto {
   @Min(0)
   salePrice: number;
 
+  @ApiPropertyOptional({ default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  retailPrice?: number;
+
   @ApiProperty()
   @IsInt()
   @Min(0)

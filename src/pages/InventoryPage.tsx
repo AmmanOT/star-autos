@@ -28,6 +28,7 @@ const emptyProduct = (): Omit<Product, 'id' | 'createdAt'> => ({
   vehicleModels: [],
   purchasePrice: 0,
   salePrice: 0,
+  retailPrice: 0,
   quantity: 0,
   minStock: 5,
   location: '',
@@ -217,6 +218,7 @@ export function InventoryPage() {
                 <th className="text-start px-3 py-2">{t('category')}</th>
                 <th className="text-start px-3 py-2">{t('vehicle')}</th>
                 <th className="text-end px-3 py-2">{t('salePrice')}</th>
+                <th className="text-end px-3 py-2">{t('retailPrice')}</th>
                 <th className="text-end px-3 py-2">{t('stock')}</th>
                 <th className="text-end px-5 py-2">{t('actions')}</th>
               </tr>
@@ -236,6 +238,9 @@ export function InventoryPage() {
                   </td>
                   <td className="px-3 py-3 text-xs">{p.vehicleModels.join(', ')}</td>
                   <td className="px-3 py-3 text-end font-medium">{formatPKR(p.salePrice)}</td>
+                  <td className="px-3 py-3 text-end text-[var(--color-text-muted)]">
+                    {formatPKR(p.retailPrice ?? 0)}
+                  </td>
                   <td className="px-3 py-3 text-end">
                     <Badge variant={isLowStock(p.quantity, p.minStock) ? 'danger' : 'success'}>
                       {p.quantity}
@@ -327,6 +332,12 @@ export function InventoryPage() {
             required
             value={form.salePrice}
             onChange={(e) => setForm({ ...form, salePrice: +e.target.value })}
+          />
+          <Input
+            label={t('retailPrice')}
+            type="number"
+            value={form.retailPrice ?? 0}
+            onChange={(e) => setForm({ ...form, retailPrice: +e.target.value })}
           />
           <Input
             label={`${t('quantity')} *`}

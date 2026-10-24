@@ -18,9 +18,17 @@ const SA = {
   id: 'c0000001-0000-4000-8000-000000000001',
   name: 'Madina Traders Admin',
   username: 'sa',
-    password: '1234',
+  password: '1234',
   role: UserRole.ADMIN,
   legacyUsernames: ['sa0999@autos.com'],
+} as const;
+
+const DEMO = {
+  id: 'c0000001-0000-4000-8000-0000000000d1',
+  name: 'Demo Viewer',
+  username: 'demo',
+  password: 'demo123',
+  role: UserRole.DEMO,
 } as const;
 
 /** Common Pakistani Suzuki spare-parts market catalog */
@@ -122,6 +130,7 @@ export class SeedService implements OnModuleInit {
     await this.wipeExceptSaOnce();
     await this.wipeSeededCatalogOnce();
     await this.migrateCustomerPortal();
+    await this.ensureDemoUser();
     if (!this.configService.get<boolean>('seedOnStart')) {
       return;
     }
@@ -211,6 +220,7 @@ export class SeedService implements OnModuleInit {
     }
 
     await this.ensureStaff();
+    await this.ensureDemoUser();
     if (this.configService.get<boolean>('seedCatalog') === true) {
       await this.ensureCatalog();
     } else {
@@ -258,6 +268,38 @@ export class SeedService implements OnModuleInit {
     );
     this.logger.log(`Super Admin created — username: ${SA.username}`);
     await this.migrateLegacyEmployee();
+  }
+
+  /** Shared view-only login for project demos. Password is reset on boot so it stays shareable. */
+  private async ensureDemoUser() {
+    const passwordHash = await bcrypt.hash(DEMO.password, 10);
+    const existing =
+      (await this.usersRepo.findOne({ where: { id: DEMO.id } })) ||
+      (await this.usersRepo.findOne({ where: { username: DEMO.username } }));
+
+    if (existing) {
+      existing.name = DEMO.name;
+      existing.username = DEMO.username;
+      existing.role = DEMO.role;
+      existing.passwordHash = passwordHash;
+      existing.permissions = [];
+      existing.customerId = null;
+      await this.usersRepo.save(existing);
+      this.logger.log(`Demo login ensured (username: ${DEMO.username})`);
+      return;
+    }
+
+    await this.usersRepo.save(
+      this.usersRepo.create({
+        id: DEMO.id,
+        name: DEMO.name,
+        username: DEMO.username,
+        passwordHash,
+        role: DEMO.role,
+        permissions: [],
+      }),
+    );
+    this.logger.log(`Demo login created — username: ${DEMO.username}`);
   }
 
   /** Keep the old seeded employee usable until SA edits them; do not recreate if deleted. */
