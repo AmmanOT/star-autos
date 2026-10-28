@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { customersApi, newIdempotencyKey } from '../api';
-import { Eye, FileDown, Plus, Printer, Trash2 } from 'lucide-react';
+import { Eye, Plus, Printer, Trash2 } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useToast } from '../contexts/ToastContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -14,16 +13,14 @@ import { Select } from '../components/ui/Select';
 import { SearchInput } from '../components/ui/SearchInput';
 import { BulkPrintBillsButton } from '../components/billing/BulkPrintBills';
 import { ThermalReceipt } from '../components/billing/ThermalReceipt';
-import { formatPKR, formatDateShort, pkDateKey } from '../utils/format';
-import { brandedFooter, brandedHeader, escapeHtml, printA4Pdf } from '../utils/exportPdf';
-import { matchesSearch, productMatchesSearch } from '../utils/search';
+import { formatPKR, formatDateShort } from '../utils/format';
+import { matchesSearch } from '../utils/search';
 import { printThermalReceipt } from '../utils/printReceipt';
 import type { Bill, Payment } from '../types';
 
 export function LedgerPage() {
   const { state, dispatch } = useStore();
-  const { user, hasPermission, isDemo } = useAuth();
-  const toast = useToast();
+  const { user, hasPermission } = useAuth();
   const { t, lang } = useLanguage();
   const isCustomer = user?.role === 'customer';
   const canDelete = hasPermission('delete');
@@ -37,9 +34,6 @@ export function LedgerPage() {
   const [customerBills, setCustomerBills] = useState<Bill[]>([]);
   const [customerPayments, setCustomerPayments] = useState<Payment[]>([]);
   const [saving, setSaving] = useState(false);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [inventorySearch, setInventorySearch] = useState('');
 
   useEffect(() => {
     if (isCustomer) {
@@ -53,30 +47,6 @@ export function LedgerPage() {
   );
 
   const selected = state.customers.find((c) => c.id === selectedId);
-
-  const inDateRange = (iso: string) => {
-    const key = pkDateKey(iso);
-    if (dateFrom && key < dateFrom) return false;
-    if (dateTo && key > dateTo) return false;
-    return true;
-  };
-
-  const visibleBills = useMemo(
-    () => customerBills.filter((bill) => inDateRange(bill.createdAt)),
-    [customerBills, dateFrom, dateTo],
-  );
-  const visiblePayments = useMemo(
-    () => customerPayments.filter((payment) => inDateRange(payment.createdAt)),
-    [customerPayments, dateFrom, dateTo],
-  );
-  const totalPurchased = visibleBills.reduce((sum, bill) => sum + Number(bill.total), 0);
-  const inventoryItems = useMemo(
-    () =>
-      state.products.filter((product) =>
-        inventorySearch.trim() ? productMatchesSearch(inventorySearch, product) : true,
-      ),
-    [state.products, inventorySearch],
-  );
 
   useEffect(() => {
     if (!selectedId) {
@@ -148,78 +118,6 @@ export function LedgerPage() {
     }
   };
 
-  const exportCustomerBillsPdf = () => {
-    if (!selected) return;
-    const rows = [...visibleBills].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
-    if (rows.length === 0) {
-      toast.error(t('noBillsToPrint'));
-      return;
-    }
-    const customerName = lang === 'ur' ? selected.nameUrdu || selected.name : selected.name;
-    const shop = t('shopInfo');
-    const address = isDemo ? t('demoShopAddress') : t('shopAddress');
-    const phone = isDemo ? t('demoShopPhone') : t('shopPhone');
-    const extra = `<span class="meta-chip">${escapeHtml(customerName)}${selected.phone ? ` · ${escapeHtml(selected.phone)}` : ''}</span>`;
-    const itemBrand = (productId: string, saved?: string) =>
-      saved || state.products.find((product) => product.id === productId)?.brand || '—';
-
-    const invoicesHtml = rows
-      .map((bill) => {
-        const itemRows = (bill.items || [])
-          .map(
-            (item, i) => `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${escapeHtml(item.productName)}</td>
-              <td>${escapeHtml(itemBrand(item.productId, item.brand))}</td>
-              <td class="num">${item.quantity}</td>
-              <td class="num">${escapeHtml(formatPKR(item.unitPrice))}</td>
-              <td class="num">${escapeHtml(formatPKR(item.total))}</td>
-            </tr>`,
-          )
-          .join('');
-        return `
-          <article class="invoice">
-            <div class="invoice-head">
-              <span class="bill-no">${escapeHtml(t('billNumber'))} ${escapeHtml(bill.billNumber)}</span>
-              <span class="bill-date">${escapeHtml(formatDateShort(bill.createdAt))}</span>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th style="width:7%">#</th>
-                  <th>${escapeHtml(t('items'))}</th>
-                  <th>${escapeHtml(t('brand'))}</th>
-                  <th class="num">${escapeHtml(t('quantity'))}</th>
-                  <th class="num">${escapeHtml(t('rate'))}</th>
-                  <th class="num">${escapeHtml(t('total'))}</th>
-                </tr>
-              </thead>
-              <tbody>${itemRows}</tbody>
-            </table>
-            <div class="invoice-total">
-              <span>${escapeHtml(t('total'))}</span>
-              <span>${escapeHtml(formatPKR(bill.total))}</span>
-            </div>
-          </article>
-        `;
-      })
-      .join('');
-
-    const body = `
-      ${brandedHeader(shop, address, phone, t('customerBillsPdf'), extra)}
-      <div class="invoices">${invoicesHtml}</div>
-      <div class="total-box">
-        <span>${escapeHtml(t('totalBalance'))}</span>
-        <span>${escapeHtml(formatPKR(selected.balance))}</span>
-      </div>
-      ${brandedFooter()}
-    `;
-    printA4Pdf(`${customerName} — ${t('customerBillsPdf')}`, body);
-  };
-
   const ledgerDetail = selected ? (
     <>
       <Card>
@@ -236,50 +134,12 @@ export function LedgerPage() {
             <Badge variant={selected.balance > 0 ? 'warning' : selected.balance < 0 ? 'info' : 'success'}>
               {selected.balance > 0 ? t('theyOweUs') : selected.balance < 0 ? t('weOweThem') : t('settled')}
             </Badge>
-            <p className="text-sm text-[var(--color-text-muted)] mt-3">{t('totalPurchased')}</p>
-            <p className="text-xl font-bold">{formatPKR(totalPurchased)}</p>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Input label={t('fromDate')} type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-          <Input label={t('toDate')} type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-        </div>
-      </Card>
-
-      <Card title={t('inventory')}>
-        <SearchInput value={inventorySearch} onChange={setInventorySearch} placeholder={t('search')} className="mb-4" />
-        {inventoryItems.length === 0 ? (
-          <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
-        ) : (
-          <div className="overflow-auto max-h-[min(40vh,320px)] -mx-5 -mb-5">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-[var(--color-surface)]">
-                <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
-                  <th className="text-start px-5 py-2">{t('name')}</th>
-                  <th className="text-start px-3 py-2">{t('brand')}</th>
-                  <th className="text-start px-3 py-2">{t('category')}</th>
-                  <th className="text-end px-3 py-2">{t('salePrice')}</th>
-                  <th className="text-end px-5 py-2">{t('stock')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventoryItems.map((p) => (
-                  <tr key={p.id} className="border-b border-[var(--color-border)] last:border-0">
-                    <td className="px-5 py-2 font-medium">{lang === 'ur' ? p.nameUrdu || p.name : p.name}</td>
-                    <td className="px-3 py-2 text-[var(--color-text-muted)]">{p.brand}</td>
-                    <td className="px-3 py-2">{p.category}</td>
-                    <td className="px-3 py-2 text-end">{formatPKR(p.salePrice)}</td>
-                    <td className="px-5 py-2 text-end">{p.quantity}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </Card>
 
       <Card title={t('billHistory')}>
-        {visibleBills.length === 0 ? (
+        {customerBills.length === 0 ? (
           <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
         ) : (
           <div className="overflow-auto max-h-[min(50vh,420px)] -mx-5 -mb-5">
@@ -295,7 +155,7 @@ export function LedgerPage() {
                 </tr>
               </thead>
               <tbody>
-                {visibleBills.map((b) => (
+                {customerBills.map((b) => (
                   <tr key={b.id} className="border-b border-[var(--color-border)] last:border-0">
                     <td className="px-5 py-3 font-medium">{b.billNumber}</td>
                     <td className="px-3 py-3 text-end">{formatPKR(b.total)}</td>
@@ -329,11 +189,11 @@ export function LedgerPage() {
       </Card>
 
       <Card title={t('logPayments')}>
-        {visiblePayments.length === 0 ? (
+        {customerPayments.length === 0 ? (
           <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
         ) : (
           <div className="space-y-2 max-h-[min(40vh,320px)] overflow-y-auto">
-            {visiblePayments.map((p) => (
+            {customerPayments.map((p) => (
               <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-elevated)]">
                 <div>
                   <Badge variant={p.type === 'received' ? 'success' : 'info'}>
@@ -369,9 +229,6 @@ export function LedgerPage() {
         <h1 className="text-2xl font-bold">{t('ledger')}</h1>
         {selected && !isCustomer && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" icon={<FileDown size={16} />} onClick={exportCustomerBillsPdf}>
-              {t('exportPDF')}
-            </Button>
             <BulkPrintBillsButton defaultCustomerId={selected.id} />
             <Button icon={<Plus size={16} />} onClick={() => setPaymentModal(true)}>{t('addPayment')}</Button>
           </div>

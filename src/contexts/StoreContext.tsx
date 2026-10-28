@@ -125,11 +125,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       if (user.role === 'customer') {
-        const [products, customers] = await Promise.all([
-          productsApi.list(),
-          customersApi.list(),
-        ]);
-        setState((prev) => ({ ...prev, products, customers, bills: [], payments: [] }));
+        const customers = await customersApi.list();
+        setState((prev) => ({ ...prev, products: [], customers, bills: [], payments: [] }));
       } else {
         const [products, customers] = await Promise.all([
           productsApi.list(),

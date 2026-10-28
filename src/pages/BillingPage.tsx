@@ -14,7 +14,6 @@ import { Modal } from '../components/ui/Modal';
 import { ThermalReceipt } from '../components/billing/ThermalReceipt';
 import { BillRecordsPanel } from '../components/billing/BillRecordsPanel';
 import { QtyStepper } from '../components/billing/QtyStepper';
-import { RetailRateToggle } from '../components/billing/RetailRateToggle';
 import { CustomerFormModal } from '../components/customers/CustomerFormModal';
 import { formatPKR, whatsappBillLink, buildBillWhatsAppText } from '../utils/format';
 import { productMatchesSearch } from '../utils/search';
@@ -68,29 +67,20 @@ export function BillingPage() {
   const subtotal = cart.reduce((s, i) => s + i.total, 0);
   const total = Math.max(0, subtotal - discount);
 
-  const addToCart = (productId: string, unitPrice?: number) => {
+  const addToCart = (productId: string) => {
     const product = state.products.find((p) => p.id === productId);
     if (!product || product.quantity <= 0) return;
-    const price = unitPrice ?? product.salePrice;
     addDraftItem({
       productId: product.id,
       productName: lang === 'ur' ? product.nameUrdu : product.name,
       partNumber: product.partNumber,
       brand: product.brand,
       quantity: 1,
-      unitPrice: price,
-      total: price,
+      unitPrice: product.salePrice,
+      total: product.salePrice,
       maxQty: product.quantity,
     });
     setSearch('');
-  };
-
-  const applyRetailRate = (productId: string, price: number) => {
-    if (cart.some((item) => item.productId === productId)) {
-      updateUnitPrice(productId, price);
-      return;
-    }
-    addToCart(productId, price);
   };
 
   const completeBill = async () => {
@@ -194,38 +184,29 @@ export function BillingPage() {
             {searchResults.length > 0 && (
               <Card>
                 <div className="space-y-2 -m-2">
-                  {searchResults.map((p) => {
-                    const inCart = cart.find((item) => item.productId === p.id);
-                    return (
-                    <div
+                  {searchResults.map((p) => (
+                    <button
                       key={p.id}
-                      className="flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-[var(--color-surface-elevated)]"
+                      onClick={() => addToCart(p.id)}
+                      className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-[var(--color-surface-elevated)] text-start transition-colors"
                     >
-                      <button
-                        type="button"
-                        onClick={() => addToCart(p.id)}
-                        className="flex-1 min-w-0 text-start"
-                      >
+                      <div>
                         <p className="font-medium">{lang === 'ur' ? p.nameUrdu : p.name}</p>
                         {p.brand && (
                           <p className="text-xs text-[var(--color-text-muted)]">{p.brand}</p>
                         )}
-                      </button>
-                      <div className="text-end shrink-0 space-y-1">
-                        <button type="button" onClick={() => addToCart(p.id)} className="font-semibold">
-                          {formatPKR(p.salePrice)}
-                        </button>
-                        <RetailRateToggle
-                          retail={p.retailPrice ?? 0}
-                          salePrice={p.salePrice}
-                          unitPrice={inCart?.unitPrice ?? p.salePrice}
-                          onApply={(price) => applyRetailRate(p.id, price)}
-                        />
+                      </div>
+                      <div className="text-end">
+                        <p className="font-semibold">{formatPKR(p.salePrice)}</p>
+                        {(p.retailPrice ?? 0) > 0 && (
+                          <p className="text-xs text-[var(--color-text-muted)]">
+                            {t('retailPrice')}: {formatPKR(p.retailPrice ?? 0)}
+                          </p>
+                        )}
                         <p className="text-xs text-[var(--color-text-muted)]">{t('stock')}: {p.quantity}</p>
                       </div>
-                    </div>
-                    );
-                  })}
+                    </button>
+                  ))}
                 </div>
               </Card>
             )}
@@ -241,9 +222,7 @@ export function BillingPage() {
               ) : (
                 <div className="space-y-3 -m-2">
                   {cart.map((item, index) => {
-                    const product = state.products.find((p) => p.id === item.productId);
-                    const retail = product?.retailPrice ?? 0;
-                    const salePrice = product?.salePrice ?? item.unitPrice;
+                    const retail = state.products.find((p) => p.id === item.productId)?.retailPrice ?? 0;
                     return (
                     <div key={item.productId} className="flex items-center gap-3 p-3 rounded-lg bg-[var(--color-surface-elevated)]">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-800 dark:bg-brand-900/60 dark:text-brand-200">
@@ -256,13 +235,8 @@ export function BillingPage() {
                         <p className="font-medium truncate">{item.productName}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">
                           {item.brand ? `${item.brand} · ` : ''}{t('rate')}
+                          {retail > 0 ? ` · ${t('retailPrice')} ${formatPKR(retail)}` : ''}
                         </p>
-                        <RetailRateToggle
-                          retail={retail}
-                          salePrice={salePrice}
-                          unitPrice={item.unitPrice}
-                          onApply={(price) => updateUnitPrice(item.productId, price)}
-                        />
                       </div>
                       <input
                         type="number"

@@ -30,7 +30,6 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.EMPLOYEE, UserRole.CUSTOMER)
   @ApiOperation({ summary: 'List products with optional filters' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'category', required: false })
@@ -44,7 +43,6 @@ export class ProductsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.EMPLOYEE, UserRole.CUSTOMER)
   @ApiOperation({ summary: 'Get product by id' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.findOne(id);

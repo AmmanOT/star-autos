@@ -13,7 +13,6 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { SearchInput } from '../ui/SearchInput';
 import { ThermalReceipt } from './ThermalReceipt';
-import { RetailRateToggle } from './RetailRateToggle';
 import { CustomerFormModal } from '../customers/CustomerFormModal';
 import { BulkPrintBillsButton } from './BulkPrintBills';
 import { Pagination } from '../ui/Pagination';
@@ -264,12 +263,11 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit, onSaved }: {
   const { subtotal, total } = recalcBillTotals(items, discount);
   const due = total - (paymentMethod === 'credit' ? 0 : paidAmount);
 
-  const addItemAtPrice = (productId: string, unitPrice?: number) => {
+  const addItem = (productId: string) => {
     const product = state.products.find((p) => p.id === productId);
     if (!product) return;
     const maxQty = availableQtyForEdit(product, bill, productId);
     const existing = items.find((i) => i.productId === productId);
-    const price = unitPrice ?? product.salePrice;
     if (existing) {
       if (existing.quantity >= maxQty) return;
       setItems((prev) => {
@@ -288,15 +286,13 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit, onSaved }: {
         partNumber: product.partNumber,
         brand: product.brand,
         quantity: 1,
-        unitPrice: price,
-        total: price,
+        unitPrice: product.salePrice,
+        total: product.salePrice,
         maxQty,
       }, ...prev]);
     }
     setSearch('');
   };
-
-  const addItem = (productId: string) => addItemAtPrice(productId);
 
   const updateQty = (productId: string, delta: number) => {
     setItems((prev) =>
@@ -374,43 +370,24 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit, onSaved }: {
             <SearchInput value={search} onChange={setSearch} placeholder={t('search')} />
             {searchResults.length > 0 && (
               <div className="space-y-1 border border-[var(--color-border)] rounded-lg p-2">
-                {searchResults.map((p) => {
-                  const inItems = items.find((item) => item.productId === p.id);
-                  return (
-                  <div key={p.id} className="flex items-center justify-between gap-2 p-2 rounded hover:bg-[var(--color-surface-elevated)] text-sm">
-                    <button type="button" onClick={() => addItem(p.id)} className="flex-1 min-w-0 text-start">
-                      <span className="font-medium">{lang === 'ur' ? p.nameUrdu : p.name}</span>
-                      {p.brand ? <span className="text-[var(--color-text-muted)]"> · {p.brand}</span> : null}
-                      <span> — {formatPKR(p.salePrice)}</span>
-                    </button>
-                    <RetailRateToggle
-                      retail={p.retailPrice ?? 0}
-                      salePrice={p.salePrice}
-                      unitPrice={inItems?.unitPrice ?? p.salePrice}
-                      onApply={(price) => {
-                        if (inItems) updateItemPrice(p.id, price);
-                        else addItemAtPrice(p.id, price);
-                      }}
-                    />
-                  </div>
-                  );
-                })}
+                {searchResults.map((p) => (
+                  <button key={p.id} onClick={() => addItem(p.id)} className="w-full text-start p-2 rounded hover:bg-[var(--color-surface-elevated)] text-sm">
+                    <span className="font-medium">{lang === 'ur' ? p.nameUrdu : p.name}</span>
+                    {p.brand ? <span className="text-[var(--color-text-muted)]"> · {p.brand}</span> : null}
+                    <span> — {formatPKR(p.salePrice)}</span>
+                    {(p.retailPrice ?? 0) > 0 ? (
+                      <span className="text-[var(--color-text-muted)]"> · {t('retailPrice')} {formatPKR(p.retailPrice ?? 0)}</span>
+                    ) : null}
+                  </button>
+                ))}
               </div>
             )}
             <div className="space-y-2">
-              {items.map((item, index) => {
-                const product = state.products.find((p) => p.id === item.productId);
-                return (
+              {items.map((item, index) => (
                 <div key={item.productId} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-surface-elevated)] text-sm">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-800 dark:bg-brand-900/60 dark:text-brand-200">{index + 1}</span>
                   <div className="flex-1 min-w-0 has-tip" data-tip={item.productName}>
                     <p className="font-medium truncate">{item.productName}</p>
-                    <RetailRateToggle
-                      retail={product?.retailPrice ?? 0}
-                      salePrice={product?.salePrice ?? item.unitPrice}
-                      unitPrice={item.unitPrice}
-                      onApply={(price) => updateItemPrice(item.productId, price)}
-                    />
                   </div>
                   <input
                     type="number"
@@ -425,8 +402,7 @@ function BillDetailModal({ bill, mode, onClose, onSwitchToEdit, onSaved }: {
                   <Button variant="secondary" size="sm" icon={<Plus size={12} />} onClick={() => updateQty(item.productId, 1)} />
                   <span className="font-medium w-20 text-end">{formatPKR(item.total)}</span>
                 </div>
-                );
-              })}
+              ))}
             </div>
           </div>
           <div className="space-y-4">
