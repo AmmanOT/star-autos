@@ -220,8 +220,43 @@ export function LedgerPage() {
     printA4Pdf(`${customerName} — ${t('customerBillsPdf')}`, body);
   };
 
+  const inventoryCard = (
+    <Card title={t('inventory')} className="h-full">
+      <SearchInput value={inventorySearch} onChange={setInventorySearch} placeholder={t('search')} className="mb-4" />
+      {inventoryItems.length === 0 ? (
+        <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
+      ) : (
+        <div className="overflow-auto max-h-[min(70vh,640px)] -mx-5 -mb-5">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 z-10 bg-[var(--color-surface)]">
+              <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
+                <th className="text-start px-5 py-2">{t('name')}</th>
+                <th className="text-start px-3 py-2">{t('brand')}</th>
+                <th className="text-start px-3 py-2">{t('category')}</th>
+                <th className="text-end px-3 py-2">{t('salePrice')}</th>
+                <th className="text-end px-5 py-2">{t('stock')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {inventoryItems.map((p) => (
+                <tr key={p.id} className="border-b border-[var(--color-border)] last:border-0">
+                  <td className="px-5 py-2 font-medium">{lang === 'ur' ? p.nameUrdu || p.name : p.name}</td>
+                  <td className="px-3 py-2 text-[var(--color-text-muted)]">{p.brand}</td>
+                  <td className="px-3 py-2">{p.category}</td>
+                  <td className="px-3 py-2 text-end">{formatPKR(p.salePrice)}</td>
+                  <td className="px-5 py-2 text-end">{p.quantity}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
+
   const ledgerDetail = selected ? (
-    <>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="lg:col-span-2 space-y-4">
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -244,38 +279,6 @@ export function LedgerPage() {
           <Input label={t('fromDate')} type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           <Input label={t('toDate')} type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
         </div>
-      </Card>
-
-      <Card title={t('inventory')}>
-        <SearchInput value={inventorySearch} onChange={setInventorySearch} placeholder={t('search')} className="mb-4" />
-        {inventoryItems.length === 0 ? (
-          <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
-        ) : (
-          <div className="overflow-auto max-h-[min(40vh,320px)] -mx-5 -mb-5">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-[var(--color-surface)]">
-                <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
-                  <th className="text-start px-5 py-2">{t('name')}</th>
-                  <th className="text-start px-3 py-2">{t('brand')}</th>
-                  <th className="text-start px-3 py-2">{t('category')}</th>
-                  <th className="text-end px-3 py-2">{t('salePrice')}</th>
-                  <th className="text-end px-5 py-2">{t('stock')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventoryItems.map((p) => (
-                  <tr key={p.id} className="border-b border-[var(--color-border)] last:border-0">
-                    <td className="px-5 py-2 font-medium">{lang === 'ur' ? p.nameUrdu || p.name : p.name}</td>
-                    <td className="px-3 py-2 text-[var(--color-text-muted)]">{p.brand}</td>
-                    <td className="px-3 py-2">{p.category}</td>
-                    <td className="px-3 py-2 text-end">{formatPKR(p.salePrice)}</td>
-                    <td className="px-5 py-2 text-end">{p.quantity}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </Card>
 
       <Card title={t('billHistory')}>
@@ -358,7 +361,9 @@ export function LedgerPage() {
           </div>
         )}
       </Card>
-    </>
+      </div>
+      <div className="lg:col-span-1 lg:sticky lg:top-4 self-start">{inventoryCard}</div>
+    </div>
   ) : (
     <Card><p className="text-[var(--color-text-muted)]">{t('selectCustomer')}</p></Card>
   );
@@ -379,7 +384,7 @@ export function LedgerPage() {
       </div>
 
       {isCustomer ? (
-        <div className="space-y-4 max-w-4xl">{ledgerDetail}</div>
+        <div>{ledgerDetail}</div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card title={t('customers')}>
