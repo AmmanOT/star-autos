@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { customersApi, newIdempotencyKey } from '../api';
-import { Eye, Plus, Printer, Trash2 } from 'lucide-react';
+import { Eye, FileDown, Plus, Printer, Trash2 } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -13,14 +14,16 @@ import { Select } from '../components/ui/Select';
 import { SearchInput } from '../components/ui/SearchInput';
 import { BulkPrintBillsButton } from '../components/billing/BulkPrintBills';
 import { ThermalReceipt } from '../components/billing/ThermalReceipt';
-import { formatPKR, formatDateShort } from '../utils/format';
+import { formatPKR, formatDateShort, pkDateKey } from '../utils/format';
+import { brandedFooter, brandedHeader, escapeHtml, printA4Pdf } from '../utils/exportPdf';
 import { matchesSearch } from '../utils/search';
 import { printThermalReceipt } from '../utils/printReceipt';
 import type { Bill, Payment } from '../types';
 
 export function LedgerPage() {
   const { state, dispatch } = useStore();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, isDemo } = useAuth();
+  const toast = useToast();
   const { t, lang } = useLanguage();
   const isCustomer = user?.role === 'customer';
   const canDelete = hasPermission('delete');
@@ -34,6 +37,8 @@ export function LedgerPage() {
   const [customerBills, setCustomerBills] = useState<Bill[]>([]);
   const [customerPayments, setCustomerPayments] = useState<Payment[]>([]);
   const [saving, setSaving] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     if (isCustomer) {
@@ -47,6 +52,22 @@ export function LedgerPage() {
   );
 
   const selected = state.customers.find((c) => c.id === selectedId);
+
+  const inDateRange = (iso: string) => {
+    const key = pkDateKey(iso);
+    if (dateFrom && key < dateFrom) return false;
+    if (dateTo && key > dateTo) return false;
+    return true;
+  };
+
+  const visibleBills = useMemo(
+    () => customerBills.filter((bill) => inDateRange(bill.createdAt)),
+    [customerBills, dateFrom, dateTo],
+  );
+  const visiblePayments = useMemo(
+    () => customerPayments.filter((payment) => inDateRange(payment.createdAt)),
+    [customerPayments, dateFrom, dateTo],
+  );
 
   useEffect(() => {
     if (!selectedId) {
@@ -118,6 +139,118 @@ export function LedgerPage() {
     }
   };
 
+  const exportLedgerPdf = () => {
+    if (!selected) return;
+    const bills = [...visibleBills].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    const payments = [...visiblePayments].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    if (bills.length === 0 && payments.length === 0) {
+      toast.error(t('noBillsToPrint'));
+      return;
+    }
+    const customerName = lang === 'ur' ? selected.nameUrdu || selected.name : selected.name;
+    const period =
+      dateFrom || dateTo
+        ? `${t('fromDate')} ${dateFrom ? formatDateShort(`${dateFrom}T12:00:00`) : '—'} — ${t('toDate')} ${dateTo ? formatDateShort(`${dateTo}T12:00:00`) : '—'}`
+        : t('all');
+    const shop = t('shopInfo');
+    const address = isDemo ? t('demoShopAddress') : t('shopAddress');
+    const phone = isDemo ? t('demoShopPhone') : t('shopPhone');
+    const itemBrand = (productId: string, saved?: string) =>
+      saved || state.products.find((product) => product.id === productId)?.brand || '—';
+
+    const invoicesHtml = bills
+      .map((bill) => {
+        const itemRows = (bill.items || [])
+          .map(
+            (item, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${escapeHtml(item.productName)}</td>
+              <td>${escapeHtml(itemBrand(item.productId, item.brand))}</td>
+              <td class="num">${item.quantity}</td>
+              <td class="num">${escapeHtml(formatPKR(item.unitPrice))}</td>
+              <td class="num">${escapeHtml(formatPKR(item.total))}</td>
+            </tr>`,
+          )
+          .join('');
+        return `
+          <article class="invoice">
+            <div class="invoice-head">
+              <span>${escapeHtml(t('billNumber'))} ${escapeHtml(bill.billNumber)}</span>
+              <span>${escapeHtml(formatDateShort(bill.createdAt))}</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:7%">#</th>
+                  <th>${escapeHtml(t('items'))}</th>
+                  <th>${escapeHtml(t('brand'))}</th>
+                  <th class="num">${escapeHtml(t('quantity'))}</th>
+                  <th class="num">${escapeHtml(t('rate'))}</th>
+                  <th class="num">${escapeHtml(t('total'))}</th>
+                </tr>
+              </thead>
+              <tbody>${itemRows}</tbody>
+            </table>
+            <div class="invoice-total">
+              <span>${escapeHtml(t('total'))}</span>
+              <span>${escapeHtml(formatPKR(bill.total))}</span>
+            </div>
+          </article>
+        `;
+      })
+      .join('');
+
+    const paymentsHtml =
+      payments.length === 0
+        ? ''
+        : `
+      <div class="pay-block">
+        <h3>${escapeHtml(t('logPayments'))}</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>${escapeHtml(t('date'))}</th>
+              <th>${escapeHtml(t('type'))}</th>
+              <th>${escapeHtml(t('method'))}</th>
+              <th class="num">${escapeHtml(t('amount'))}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${payments
+              .map(
+                (payment) => `
+              <tr>
+                <td>${escapeHtml(formatDateShort(payment.createdAt))}</td>
+                <td>${escapeHtml(payment.type === 'received' ? t('paymentReceived') : t('paymentPaid'))}</td>
+                <td>${escapeHtml(payment.method)}</td>
+                <td class="num">${escapeHtml(formatPKR(payment.amount))}</td>
+              </tr>`,
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    const body = `
+      ${brandedHeader(shop, address, phone, t('customerBillsPdf'))}
+      <div class="meta-line">${escapeHtml(customerName)}${selected.phone ? ` · ${escapeHtml(selected.phone)}` : ''} · ${escapeHtml(period)}</div>
+      ${invoicesHtml}
+      ${paymentsHtml}
+      <div class="total-box">
+        <span>${escapeHtml(t('totalBalance'))}</span>
+        <span>${escapeHtml(formatPKR(selected.balance))}</span>
+      </div>
+      ${brandedFooter()}
+    `;
+    printA4Pdf(`${customerName} — ${t('customerBillsPdf')}`, body);
+  };
+
   const ledgerDetail = selected ? (
     <>
       <Card>
@@ -136,10 +269,14 @@ export function LedgerPage() {
             </Badge>
           </div>
         </div>
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Input label={t('fromDate')} type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <Input label={t('toDate')} type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+        </div>
       </Card>
 
       <Card title={t('billHistory')}>
-        {customerBills.length === 0 ? (
+        {visibleBills.length === 0 ? (
           <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
         ) : (
           <div className="overflow-auto max-h-[min(50vh,420px)] -mx-5 -mb-5">
@@ -155,7 +292,7 @@ export function LedgerPage() {
                 </tr>
               </thead>
               <tbody>
-                {customerBills.map((b) => (
+                {visibleBills.map((b) => (
                   <tr key={b.id} className="border-b border-[var(--color-border)] last:border-0">
                     <td className="px-5 py-3 font-medium">{b.billNumber}</td>
                     <td className="px-3 py-3 text-end">{formatPKR(b.total)}</td>
@@ -189,11 +326,11 @@ export function LedgerPage() {
       </Card>
 
       <Card title={t('logPayments')}>
-        {customerPayments.length === 0 ? (
+        {visiblePayments.length === 0 ? (
           <p className="text-[var(--color-text-muted)] text-sm">{t('noResults')}</p>
         ) : (
           <div className="space-y-2 max-h-[min(40vh,320px)] overflow-y-auto">
-            {customerPayments.map((p) => (
+            {visiblePayments.map((p) => (
               <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-elevated)]">
                 <div>
                   <Badge variant={p.type === 'received' ? 'success' : 'info'}>
@@ -229,6 +366,9 @@ export function LedgerPage() {
         <h1 className="text-2xl font-bold">{t('ledger')}</h1>
         {selected && !isCustomer && (
           <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" icon={<FileDown size={16} />} onClick={exportLedgerPdf}>
+              {t('exportPDF')}
+            </Button>
             <BulkPrintBillsButton defaultCustomerId={selected.id} />
             <Button icon={<Plus size={16} />} onClick={() => setPaymentModal(true)}>{t('addPayment')}</Button>
           </div>

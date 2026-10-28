@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown } from 'lucide-react';
 import { useStore } from '../contexts/StoreContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,6 +16,7 @@ import { Select } from '../components/ui/Select';
 import { SearchInput } from '../components/ui/SearchInput';
 import { CreatableSelect, VehicleMultiSelect } from '../components/ui/CreatableSelect';
 import { formatPKR, isLowStock } from '../utils/format';
+import { brandedHeader, escapeHtml, printA4Pdf } from '../utils/exportPdf';
 import { productMatchesSearch } from '../utils/search';
 
 const emptyProduct = (): Omit<Product, 'id' | 'createdAt'> => ({
@@ -37,7 +38,7 @@ const emptyProduct = (): Omit<Product, 'id' | 'createdAt'> => ({
 export function InventoryPage() {
   const { state, dispatch } = useStore();
   const { t, lang } = useLanguage();
-  const { hasPermission } = useAuth();
+  const { hasPermission, isDemo } = useAuth();
   const canEdit = hasPermission('edit');
   const canDelete = hasPermission('delete');
   const toast = useToast();
@@ -144,6 +145,51 @@ export function InventoryPage() {
     }
   };
 
+  const exportStockPdf = () => {
+    const rows = [...state.products].sort((a, b) => a.name.localeCompare(b.name));
+    if (rows.length === 0) {
+      toast.error(t('noResults'));
+      return;
+    }
+    const shop = t('shopInfo');
+    const address = isDemo ? t('demoShopAddress') : t('shopAddress');
+    const phone = isDemo ? t('demoShopPhone') : t('shopPhone');
+    const mid = Math.ceil(rows.length / 2);
+    const left = rows.slice(0, mid);
+    const right = rows.slice(mid);
+    const cell = (product: Product | undefined, index: number) => {
+      if (!product) {
+        return `<td class="sr"></td><td></td><td class="brand"></td>`;
+      }
+      const name = lang === 'ur' ? product.nameUrdu || product.name : product.name;
+      return `
+        <td class="sr">${index}</td>
+        <td>${escapeHtml(name)}</td>
+        <td class="brand">${escapeHtml(product.brand || '—')}</td>
+      `;
+    };
+    const bodyRows = left
+      .map(
+        (product, i) => `
+        <tr>
+          ${cell(product, i + 1)}
+          ${cell(right[i], mid + i + 1)}
+        </tr>`,
+      )
+      .join('');
+    const colHead = `<th class="sr">#</th><th>${escapeHtml(t('name'))}</th><th class="brand">${escapeHtml(t('brand'))}</th>`;
+    const body = `
+      ${brandedHeader(shop, address, phone, t('stockList'))}
+      <table class="stock-table">
+        <thead>
+          <tr>${colHead}${colHead}</tr>
+        </thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    `;
+    printA4Pdf(`${shop} — ${t('stockList')}`, body);
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm(t('confirmDelete'))) return;
     try {
@@ -157,11 +203,16 @@ export function InventoryPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">{t('inventory')}</h1>
-        {canEdit && (
-          <Button icon={<Plus size={16} />} onClick={openAdd}>
-            {t('addProduct')}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" icon={<FileDown size={16} />} onClick={exportStockPdf}>
+            {t('exportPDF')}
           </Button>
-        )}
+          {canEdit && (
+            <Button icon={<Plus size={16} />} onClick={openAdd}>
+              {t('addProduct')}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row lg:items-end gap-3">
