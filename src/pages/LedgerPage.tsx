@@ -13,6 +13,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { SearchInput } from '../components/ui/SearchInput';
 import { BulkPrintBillsButton } from '../components/billing/BulkPrintBills';
+import { PaymentReceipt } from '../components/billing/PaymentReceipt';
 import { ThermalReceipt } from '../components/billing/ThermalReceipt';
 import { formatPKR, formatDateShort, pkDateKey } from '../utils/format';
 import { brandedFooter, brandedHeader, escapeHtml, printA4Pdf } from '../utils/exportPdf';
@@ -33,6 +34,7 @@ export function LedgerPage() {
   );
   const [paymentModal, setPaymentModal] = useState(false);
   const [viewBill, setViewBill] = useState<Bill | null>(null);
+  const [viewPayment, setViewPayment] = useState<{ payment: Payment; balance: number } | null>(null);
   const [payForm, setPayForm] = useState({ amount: 0, type: 'received' as 'received' | 'paid', method: 'cash' as 'cash' | 'bank', notes: '' });
   const [customerBills, setCustomerBills] = useState<Bill[]>([]);
   const [customerPayments, setCustomerPayments] = useState<Payment[]>([]);
@@ -101,7 +103,8 @@ export function LedgerPage() {
     if (!selectedId || payForm.amount <= 0 || saving) return;
     setSaving(true);
     try {
-      await dispatch({
+      const previousBalance = selected?.balance ?? 0;
+      const created = (await dispatch({
         type: 'ADD_PAYMENT',
         payload: {
           customerId: selectedId,
@@ -111,9 +114,12 @@ export function LedgerPage() {
           notes: payForm.notes,
         },
         idempotencyKey: newIdempotencyKey(),
-      });
+      })) as Payment;
+      const remainingBalance =
+        previousBalance + (payForm.type === 'received' ? -payForm.amount : payForm.amount);
       setPaymentModal(false);
       setPayForm({ amount: 0, type: 'received', method: 'cash', notes: '' });
+      if (created?.id) setViewPayment({ payment: created, balance: remainingBalance });
     } catch {
       /* toast handled in store */
     } finally {
@@ -341,6 +347,14 @@ export function LedgerPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold">{formatPKR(p.amount)}</span>
+                  {!isCustomer && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Printer size={14} />}
+                      onClick={() => setViewPayment({ payment: p, balance: selected.balance })}
+                    />
+                  )}
                   {!isCustomer && canDelete && (
                     <Button
                       variant="ghost"
@@ -442,6 +456,30 @@ export function LedgerPage() {
               <Button variant="secondary" onClick={() => setViewBill(null)}>{t('cancel')}</Button>
               {!isCustomer && (
                 <Button icon={<Printer size={16} />} onClick={() => printThermalReceipt()}>{t('printBill')}</Button>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!viewPayment && !!selected}
+        onClose={() => setViewPayment(null)}
+        title={t('paymentReceipt')}
+        size="sm"
+      >
+        {viewPayment && selected && (
+          <div className="space-y-4">
+            <PaymentReceipt
+              payment={viewPayment.payment}
+              customer={{ ...selected, balance: viewPayment.balance }}
+            />
+            <div className="flex justify-end gap-2 no-print">
+              <Button variant="secondary" onClick={() => setViewPayment(null)}>{t('cancel')}</Button>
+              {!isCustomer && (
+                <Button icon={<Printer size={16} />} onClick={() => printThermalReceipt()}>
+                  {t('printPayment')}
+                </Button>
               )}
             </div>
           </div>

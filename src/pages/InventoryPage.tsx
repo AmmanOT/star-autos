@@ -146,7 +146,7 @@ export function InventoryPage() {
   };
 
   const exportStockPdf = () => {
-    const rows = [...state.products].sort((a, b) => a.name.localeCompare(b.name));
+    const rows = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
     if (rows.length === 0) {
       toast.error(t('noResults'));
       return;
