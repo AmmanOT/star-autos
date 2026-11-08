@@ -20,9 +20,15 @@ export function setToken(token: string | null) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
-/** Production (Vercel): set VITE_API_URL to Render API origin, e.g. https://star-autos-api.onrender.com */
+/** Production API: RackNerd Madina Traders (Neon DB unchanged). */
+const PRODUCTION_API = 'https://192.236.219.79.sslip.io';
+
 function apiBase(): string {
-  const raw = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '';
+  let raw = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '';
+  // Cut over from free Render sleep; ignore stale onrender env if still set on Vercel
+  if (!raw || /onrender\.com$/i.test(raw.replace(/^https?:\/\//, '').split('/')[0] || '')) {
+    raw = import.meta.env.PROD ? PRODUCTION_API : '';
+  }
   if (!raw) return '/api';
   return raw.endsWith('/api') ? raw : `${raw}/api`;
 }
