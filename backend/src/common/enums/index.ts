@@ -11,6 +11,7 @@ export enum Permission {
   CUSTOMERS = 'customers',
   BILLING = 'billing',
   LEDGER = 'ledger',
+  RENT = 'rent',
   REPORTS = 'reports',
   ACTIVITY_LOGS = 'activityLogs',
   EDIT = 'edit',
@@ -32,6 +33,7 @@ export const EMPLOYEE_ASSIGNABLE_PERMISSIONS: Permission[] = [
   Permission.CUSTOMERS,
   Permission.BILLING,
   Permission.LEDGER,
+  Permission.RENT,
   Permission.EDIT,
   Permission.DELETE,
 ];

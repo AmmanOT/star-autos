@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { addMonths, monthsOfYear, statementFor } from '../rentals/rent-ledger';
 import { paginated, parsePage, pkDayRange } from '../common/pagination';
 import {
   DEMO_BRANDS,
@@ -33,6 +34,8 @@ export class DemoDataService {
     if (route === '/catalog/categories') return DEMO_CATEGORIES;
     if (route === '/catalog/vehicles') return DEMO_VEHICLES;
     if (route === '/users') return [];
+    if (route === '/rentals/properties') return demoRentProperties();
+    if (route === '/rentals/board') return demoRentBoard(query.month);
 
     const product = matchId(route, '/products/');
     if (product) return must(DEMO_PRODUCTS.find((row) => row.id === product), 'Product');
@@ -334,6 +337,176 @@ function round2(value: number): number {
 
 function pkDateKey(value: Date | string): string {
   return new Date(value).toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
+}
+
+const DEMO_PLAZA = '11111111-1111-4111-8111-111111111111';
+const DEMO_MARKET = '11111111-1111-4111-8111-111111111112';
+const DEMO_ROOM_1 = '22222222-2222-4222-8222-222222222221';
+const DEMO_ROOM_2 = '22222222-2222-4222-8222-222222222222';
+const DEMO_SHOP_1 = '22222222-2222-4222-8222-222222222223';
+const DEMO_SHOP_2 = '22222222-2222-4222-8222-222222222224';
+
+function demoRentProperties() {
+  const todayMonth = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' }).slice(0, 7);
+  const previous = addMonths(todayMonth, -1);
+  return [
+    {
+      id: DEMO_PLAZA,
+      name: 'Plaza 1',
+      address: 'Main Road',
+      notes: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      units: [
+        demoUnit(DEMO_ROOM_1, DEMO_PLAZA, 'Room 1', 'room', 7000, 5, 'Ahmed Ali', '03001234567', true, 50000, todayMonth),
+        demoUnit(DEMO_ROOM_2, DEMO_PLAZA, 'Room 2', 'room', 6500, 5, 'Bilal Khan', '03007654321', true, 0, previous),
+        demoUnit(DEMO_SHOP_1, DEMO_PLAZA, 'Shop 1', 'shop', 15000, 10, 'Madina Store', '03009876543', true, 0, todayMonth),
+      ],
+    },
+    {
+      id: DEMO_MARKET,
+      name: 'Market Plaza',
+      address: null,
+      notes: null,
+      createdAt: '2026-03-01T00:00:00.000Z',
+      units: [
+        demoUnit(DEMO_SHOP_2, DEMO_MARKET, 'Shop A', 'shop', 12000, 1, null, null, false, 0, todayMonth),
+      ],
+    },
+  ];
+}
+
+function demoUnit(
+  id: string,
+  propertyId: string,
+  name: string,
+  kind: 'room' | 'shop',
+  monthlyRent: number,
+  dueDay: number,
+  tenantName: string | null,
+  tenantPhone: string | null,
+  occupied: boolean,
+  openingBalance: number,
+  startMonth: string,
+) {
+  return {
+    id,
+    propertyId,
+    name,
+    kind,
+    monthlyRent,
+    dueDay,
+    tenantName,
+    tenantPhone,
+    occupied,
+    openingBalance,
+    startMonth,
+    notes: null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  };
+}
+
+function demoRentBoard(month: string | undefined) {
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
+  const todayMonth = today.slice(0, 7);
+  const period = month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : todayMonth;
+  const properties = demoRentProperties();
+  const payments = [
+    {
+      id: '33333333-3333-4333-8333-000000000001',
+      unitId: DEMO_ROOM_1,
+      period: todayMonth,
+      amount: 3500,
+      paidOn: `${todayMonth}-06`,
+      method: 'cash' as const,
+      notes: 'Half now, rest next week',
+      createdAt: `${todayMonth}-06T10:00:00.000Z`,
+    },
+  ];
+  const charges = [
+    {
+      id: '44444444-4444-4444-8444-000000000001',
+      unitId: DEMO_ROOM_1,
+      amount: 1500,
+      chargedOn: `${todayMonth}-02`,
+      description: 'Electricity',
+      createdAt: `${todayMonth}-02T10:00:00.000Z`,
+    },
+  ];
+  const year = monthsOfYear(Number(period.slice(0, 4)));
+  const units = properties.flatMap((property) =>
+    property.units.map((unit) => ({ ...unit, propertyName: property.name })),
+  );
+  const rows = units.map((unit) => {
+    const ledgerUnit = {
+      id: unit.id,
+      occupied: unit.occupied,
+      monthlyRent: unit.monthlyRent,
+      openingBalance: unit.openingBalance,
+      startMonth: unit.startMonth,
+    };
+    const unitPayments = payments.filter((row) => row.unitId === unit.id);
+    const unitCharges = charges.filter((row) => row.unitId === unit.id);
+    const statement = statementFor(ledgerUnit, period, unitPayments, unitCharges, todayMonth);
+    const dueDate = `${period}-${String(Math.min(unit.dueDay, 28)).padStart(2, '0')}`;
+    const active = unit.occupied || statement.broughtForward > 0 || statement.extras > 0 || statement.collected > 0;
+    const status = !active
+      ? 'vacant'
+      : statement.collected <= 0 && statement.remaining > 0
+        ? 'unpaid'
+        : statement.remaining > 0
+          ? 'partial'
+          : 'paid';
+    return {
+      unitId: unit.id,
+      propertyId: unit.propertyId,
+      propertyName: unit.propertyName,
+      unitName: unit.name,
+      kind: unit.kind,
+      tenantName: unit.tenantName,
+      tenantPhone: unit.tenantPhone,
+      dueDay: unit.dueDay,
+      dueDate,
+      monthlyRent: unit.monthlyRent,
+      openingBalance: unit.openingBalance,
+      startMonth: unit.startMonth,
+      occupied: unit.occupied,
+      broughtForward: statement.broughtForward,
+      monthRent: statement.monthRent,
+      extras: statement.extras,
+      expected: statement.expected,
+      collected: statement.collected,
+      remaining: statement.remaining,
+      extra: statement.credit,
+      status,
+      overdue: statement.remaining > 0 && period <= todayMonth && today > dueDate,
+      charges: statement.charges,
+      payments: statement.payments,
+      year: year.map((item) => {
+        const cell = statementFor(ledgerUnit, item, unitPayments, unitCharges, todayMonth);
+        return { month: item, collected: cell.collected, remaining: cell.remaining, expected: cell.expected };
+      }),
+    };
+  });
+  const sum = (pick: (row: (typeof rows)[number]) => number) =>
+    round2(rows.reduce((total, row) => total + pick(row), 0));
+  return {
+    month: period,
+    today,
+    totals: {
+      broughtForward: sum((row) => Math.max(0, row.broughtForward)),
+      monthRent: sum((row) => row.monthRent),
+      extras: sum((row) => row.extras),
+      expected: sum((row) => row.expected),
+      collected: sum((row) => row.collected),
+      remaining: sum((row) => row.remaining),
+      paid: rows.filter((row) => row.status === 'paid').length,
+      partial: rows.filter((row) => row.status === 'partial').length,
+      unpaid: rows.filter((row) => row.status === 'unpaid').length,
+      overdue: rows.filter((row) => row.overdue).length,
+      vacant: rows.filter((row) => row.status === 'vacant').length,
+    },
+    rows,
+  };
 }
 
 function inRange(bill: DemoBill, start?: Date, end?: Date): boolean {

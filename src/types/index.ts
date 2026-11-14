@@ -6,6 +6,7 @@ export type Permission =
   | 'customers'
   | 'billing'
   | 'ledger'
+  | 'rent'
   | 'reports'
   | 'activityLogs'
   | 'edit'
@@ -103,6 +104,108 @@ export interface User {
   phone?: string;
   customerId?: string;
   permissions: Permission[];
+}
+
+export type RentalKind = 'room' | 'shop';
+export type RentStatus = 'vacant' | 'paid' | 'partial' | 'unpaid';
+
+export interface RentalUnit {
+  id: string;
+  propertyId: string;
+  name: string;
+  kind: RentalKind;
+  monthlyRent: number;
+  dueDay: number;
+  tenantName: string | null;
+  tenantPhone: string | null;
+  occupied: boolean;
+  openingBalance: number;
+  startMonth: string;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface RentalProperty {
+  id: string;
+  name: string;
+  address: string | null;
+  notes: string | null;
+  createdAt: string;
+  units: RentalUnit[];
+}
+
+export interface RentCharge {
+  id: string;
+  unitId: string;
+  amount: number;
+  chargedOn: string;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface RentMonthStat {
+  month: string;
+  collected: number;
+  remaining: number;
+  expected: number;
+}
+
+export interface RentCollection {
+  id: string;
+  unitId: string;
+  period: string;
+  amount: number;
+  paidOn: string;
+  method: 'cash' | 'bank';
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface RentBoardRow {
+  unitId: string;
+  propertyId: string;
+  propertyName: string;
+  unitName: string;
+  kind: RentalKind;
+  tenantName: string | null;
+  tenantPhone: string | null;
+  dueDay: number;
+  dueDate: string;
+  monthlyRent: number;
+  openingBalance: number;
+  startMonth: string;
+  occupied: boolean;
+  broughtForward: number;
+  monthRent: number;
+  extras: number;
+  expected: number;
+  collected: number;
+  remaining: number;
+  extra: number;
+  status: RentStatus;
+  overdue: boolean;
+  charges: RentCharge[];
+  payments: RentCollection[];
+  year: RentMonthStat[];
+}
+
+export interface RentBoard {
+  month: string;
+  today: string;
+  totals: {
+    broughtForward: number;
+    monthRent: number;
+    extras: number;
+    expected: number;
+    collected: number;
+    remaining: number;
+    paid: number;
+    partial: number;
+    unpaid: number;
+    overdue: number;
+    vacant: number;
+  };
+  rows: RentBoardRow[];
 }
 
 export interface AppState {

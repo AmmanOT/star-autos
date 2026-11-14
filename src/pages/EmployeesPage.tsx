@@ -31,6 +31,7 @@ const PERMISSION_LABEL: Record<Permission, TranslationKey> = {
   customers: 'customers',
   billing: 'billing',
   ledger: 'ledger',
+  rent: 'rent',
   reports: 'reports',
   activityLogs: 'activityLogs',
   edit: 'permEdit',
