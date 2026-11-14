@@ -1,18 +1,7 @@
 import { apiRequest } from './client';
 export { ApiError } from './client';
 import { asList, queryString, type Paginated } from './list';
-import type {
-  ActivityLog,
-  Bill,
-  Customer,
-  Payment,
-  Product,
-  RentBoard,
-  RentCharge,
-  RentCollection,
-  RentalProperty,
-  RentalUnit,
-} from '../types';
+import type { ActivityLog, Bill, Customer, Payment, Product } from '../types';
 export { usersApi } from './users';
 export type { EmployeeInput } from './users';
 export { asList, newIdempotencyKey, type Paginated } from './list';
@@ -153,56 +142,6 @@ export const reportsApi = {
     ),
   sales: (from: string, to: string) =>
     apiRequest<SalesReport>(`/reports/sales${queryString({ from, to })}`),
-};
-
-export type PropertyInput = { name: string; address?: string; notes?: string };
-export type UnitInput = {
-  propertyId: string;
-  name: string;
-  kind: 'room' | 'shop';
-  monthlyRent: number;
-  dueDay: number;
-  tenantName?: string;
-  tenantPhone?: string;
-  occupied?: boolean;
-  openingBalance?: number;
-  startMonth?: string;
-  notes?: string;
-};
-export type ChargeInput = {
-  unitId: string;
-  amount: number;
-  chargedOn: string;
-  description: string;
-};
-export type CollectionInput = {
-  unitId: string;
-  period: string;
-  amount: number;
-  paidOn: string;
-  method: 'cash' | 'bank';
-  notes?: string;
-};
-
-export const rentalsApi = {
-  properties: () => apiRequest<RentalProperty[]>('/rentals/properties'),
-  createProperty: (body: PropertyInput) =>
-    apiRequest<RentalProperty>('/rentals/properties', { method: 'POST', body }),
-  updateProperty: (id: string, body: Partial<PropertyInput>) =>
-    apiRequest<RentalProperty>(`/rentals/properties/${id}`, { method: 'PATCH', body }),
-  removeProperty: (id: string) => apiRequest<void>(`/rentals/properties/${id}`, { method: 'DELETE' }),
-  createUnit: (body: UnitInput) => apiRequest<RentalUnit>('/rentals/units', { method: 'POST', body }),
-  updateUnit: (id: string, body: Partial<Omit<UnitInput, 'propertyId'>>) =>
-    apiRequest<RentalUnit>(`/rentals/units/${id}`, { method: 'PATCH', body }),
-  removeUnit: (id: string) => apiRequest<void>(`/rentals/units/${id}`, { method: 'DELETE' }),
-  board: (month: string) => apiRequest<RentBoard>(`/rentals/board${queryString({ month })}`),
-  addCharge: (body: ChargeInput) =>
-    apiRequest<RentCharge>('/rentals/charges', { method: 'POST', body }),
-  removeCharge: (id: string) => apiRequest<void>(`/rentals/charges/${id}`, { method: 'DELETE' }),
-  collect: (body: CollectionInput) =>
-    apiRequest<RentCollection>('/rentals/collections', { method: 'POST', body }),
-  removeCollection: (id: string) =>
-    apiRequest<void>(`/rentals/collections/${id}`, { method: 'DELETE' }),
 };
 
 export const activityLogsApi = {

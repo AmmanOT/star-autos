@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Package, Users, Receipt, BookOpen, Building2, BarChart3, Settings, LogOut,
+  LayoutDashboard, Package, Users, Receipt, BookOpen, BarChart3, Settings, LogOut,
   Moon, Sun, Globe, Menu, X, ScrollText, UserCog, Eye, EyeOff,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -25,7 +25,6 @@ const navLinks: {
   { to: '/admin/customers', icon: Users, key: 'customers', permission: 'customers' },
   { to: '/admin/billing', icon: Receipt, key: 'billing', permission: 'billing' },
   { to: '/admin/ledger', icon: BookOpen, key: 'ledger', permission: 'ledger' },
-  { to: '/admin/rent', icon: Building2, key: 'rent', permission: 'rent' },
   { to: '/admin/reports', icon: BarChart3, key: 'reports', permission: 'reports' },
   { to: '/admin/activity-logs', icon: ScrollText, key: 'activityLogs', permission: 'activityLogs' },
   { to: '/admin/employees', icon: UserCog, key: 'employees', adminOnly: true },

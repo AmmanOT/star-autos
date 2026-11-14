@@ -18,7 +18,6 @@ import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ActivityLogsPage } from './pages/ActivityLogsPage';
 import { EmployeesPage } from './pages/EmployeesPage';
-import { RentPage } from './pages/RentPage';
 
 export default function App() {
   return (
@@ -51,9 +50,6 @@ export default function App() {
                       </Route>
                       <Route element={<ProtectedRoute permission="ledger" />}>
                         <Route path="ledger" element={<LedgerPage />} />
-                      </Route>
-                      <Route element={<ProtectedRoute permission="rent" />}>
-                        <Route path="rent" element={<RentPage />} />
                       </Route>
                       <Route element={<ProtectedRoute permission="reports" />}>
                         <Route path="reports" element={<ReportsPage />} />

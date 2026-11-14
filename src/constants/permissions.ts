@@ -8,7 +8,6 @@ export const PERMISSIONS: Permission[] = [
   'customers',
   'billing',
   'ledger',
-  'rent',
   'reports',
   'activityLogs',
   'edit',
@@ -26,7 +25,6 @@ export const EMPLOYEE_SECTION_PERMISSIONS: PagePermission[] = [
   'customers',
   'billing',
   'ledger',
-  'rent',
 ];
 
 export const EMPLOYEE_ACTION_PERMISSIONS: Permission[] = ['edit', 'delete'];
@@ -42,7 +40,6 @@ export const PERMISSION_ROUTE: Record<PagePermission, string> = {
   customers: '/admin/customers',
   billing: '/admin/billing',
   ledger: '/admin/ledger',
-  rent: '/admin/rent',
   reports: '/admin/reports',
   activityLogs: '/admin/activity-logs',
 };
