@@ -16,6 +16,32 @@ const STATEMENTS = [
   `ALTER TABLE bills ADD COLUMN IF NOT EXISTS deleted_at timestamptz`,
   `CREATE INDEX IF NOT EXISTS idx_bills_deleted_at ON bills (deleted_at)`,
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS retail_price numeric(12,2) NOT NULL DEFAULT 0`,
+  `CREATE TABLE IF NOT EXISTS rental_properties (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name varchar(160) NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS rental_units (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    property_id uuid NOT NULL REFERENCES rental_properties(id) ON DELETE CASCADE,
+    kind varchar(10) NOT NULL,
+    unit_no varchar(40) NOT NULL,
+    monthly_rent numeric(14,2) NOT NULL DEFAULT 0,
+    due_day int NOT NULL DEFAULT 1,
+    opening_balance numeric(14,2) NOT NULL DEFAULT 0,
+    start_month varchar(7) NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_rental_units_property_id ON rental_units (property_id)`,
+  `CREATE TABLE IF NOT EXISTS rent_payments (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    unit_id uuid NOT NULL REFERENCES rental_units(id) ON DELETE CASCADE,
+    amount numeric(14,2) NOT NULL,
+    paid_on date NOT NULL,
+    notes varchar(255),
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_rent_payments_unit_id ON rent_payments (unit_id, paid_on)`,
 ];
 
 const BACKFILL_PURCHASE_PRICE = `UPDATE bills b

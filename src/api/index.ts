@@ -1,7 +1,7 @@
 import { apiRequest } from './client';
 export { ApiError } from './client';
 import { asList, queryString, type Paginated } from './list';
-import type { ActivityLog, Bill, Customer, Payment, Product } from '../types';
+import type { ActivityLog, Bill, Customer, Payment, Product, RentBoard } from '../types';
 export { usersApi } from './users';
 export type { EmployeeInput } from './users';
 export { asList, newIdempotencyKey, type Paginated } from './list';
@@ -142,6 +142,33 @@ export const reportsApi = {
     ),
   sales: (from: string, to: string) =>
     apiRequest<SalesReport>(`/reports/sales${queryString({ from, to })}`),
+};
+
+export const rentalsApi = {
+  board: (month: string) => apiRequest<RentBoard>(`/rentals/board${queryString({ month })}`),
+  addProperty: (name: string) => apiRequest<{ id: string; name: string }>('/rentals/properties', { method: 'POST', body: { name } }),
+  removeProperty: (id: string) => apiRequest<{ ok: boolean }>(`/rentals/properties/${id}`, { method: 'DELETE' }),
+  addUnit: (body: {
+    propertyId: string;
+    kind: 'shop' | 'room';
+    unitNo: string;
+    monthlyRent: number;
+    dueDay: number;
+    openingBalance: number;
+    startMonth: string;
+  }) => apiRequest('/rentals/units', { method: 'POST', body }),
+  updateUnit: (id: string, body: {
+    kind: 'shop' | 'room';
+    unitNo: string;
+    monthlyRent: number;
+    dueDay: number;
+    openingBalance: number;
+    startMonth: string;
+  }) => apiRequest(`/rentals/units/${id}`, { method: 'PATCH', body }),
+  removeUnit: (id: string) => apiRequest<{ ok: boolean }>(`/rentals/units/${id}`, { method: 'DELETE' }),
+  addPayment: (body: { unitId: string; amount: number; paidOn: string; notes?: string }) =>
+    apiRequest('/rentals/payments', { method: 'POST', body }),
+  removePayment: (id: string) => apiRequest<{ ok: boolean }>(`/rentals/payments/${id}`, { method: 'DELETE' }),
 };
 
 export const activityLogsApi = {

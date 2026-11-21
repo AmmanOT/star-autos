@@ -6,6 +6,7 @@ export type Permission =
   | 'customers'
   | 'billing'
   | 'ledger'
+  | 'rent'
   | 'reports'
   | 'activityLogs'
   | 'edit'
@@ -103,6 +104,45 @@ export interface User {
   phone?: string;
   customerId?: string;
   permissions: Permission[];
+}
+
+export interface RentPaymentLine {
+  id: string;
+  amount: number;
+  paidOn: string;
+  notes: string | null;
+}
+
+export interface RentUnitRow {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  kind: 'shop' | 'room';
+  unitNo: string;
+  monthlyRent: number;
+  dueDay: number;
+  openingBalance: number;
+  startMonth: string;
+  broughtForward: number;
+  monthRent: number;
+  collected: number;
+  remaining: number;
+  credit: number;
+  dueDate: string;
+  overdue: boolean;
+  payments: RentPaymentLine[];
+}
+
+export interface RentBoard {
+  month: string;
+  totals: {
+    collected: number;
+    remaining: number;
+    monthRent: number;
+    broughtForward: number;
+  };
+  properties: { id: string; name: string }[];
+  units: RentUnitRow[];
 }
 
 export interface AppState {

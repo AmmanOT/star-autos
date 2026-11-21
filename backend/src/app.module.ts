@@ -21,6 +21,10 @@ import { SeedModule } from './database/seed.module';
 import { DemoModule } from './demo/demo.module';
 import { DatabaseTuneModule } from './database/database-tune.module';
 import { ActivityLogsModule } from './activity-logs/activity-logs.module';
+import { RentalsModule } from './rentals/rentals.module';
+import { RentalProperty } from './rentals/entities/rental-property.entity';
+import { RentalUnit } from './rentals/entities/rental-unit.entity';
+import { RentPayment } from './rentals/entities/rent-payment.entity';
 import { HealthController } from './health.controller';
 import { User } from './users/entities/user.entity';
 import { Product } from './products/entities/product.entity';
@@ -58,6 +62,9 @@ import { ActivityLog } from './activity-logs/entities/activity-log.entity';
             Category,
             Vehicle,
             ActivityLog,
+            RentalProperty,
+            RentalUnit,
+            RentPayment,
           ],
           synchronize: nodeEnv !== 'production' || forceSync,
           logging: nodeEnv === 'development',
@@ -93,6 +100,7 @@ import { ActivityLog } from './activity-logs/entities/activity-log.entity';
     ReportsModule,
     CatalogModule,
     ActivityLogsModule,
+    RentalsModule,
     SeedModule,
     DemoModule,
   ],

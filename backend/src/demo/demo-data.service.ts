@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { karachiDate, karachiMonth, statementFor } from '../rentals/rent-ledger';
 import { paginated, parsePage, pkDayRange } from '../common/pagination';
 import {
   DEMO_BRANDS,
@@ -33,6 +34,8 @@ export class DemoDataService {
     if (route === '/catalog/categories') return DEMO_CATEGORIES;
     if (route === '/catalog/vehicles') return DEMO_VEHICLES;
     if (route === '/users') return [];
+    if (route === '/rentals/board') return this.rentBoard(query.month);
+    if (route === '/rentals/properties') return this.rentBoard().properties;
 
     const product = matchId(route, '/products/');
     if (product) return must(DEMO_PRODUCTS.find((row) => row.id === product), 'Product');
@@ -291,6 +294,70 @@ export class DemoDataService {
       return paginated(items.slice(skip, skip + limit), items.length, page, limit);
     }
     return items.slice(0, Math.min(Number(query.limit ?? 200) || 200, 500));
+  }
+
+  private rentBoard(month?: string) {
+    const viewMonth = month && /^\d{4}-\d{2}$/.test(month) ? month : karachiMonth();
+    const today = karachiDate();
+    const property = { id: 'demo-property-1', name: 'Amman Manzil' };
+    const units = [
+      {
+        id: 'demo-unit-shop-1',
+        propertyId: property.id,
+        propertyName: property.name,
+        kind: 'shop' as const,
+        unitNo: '1',
+        monthlyRent: 5000,
+        dueDay: 10,
+        openingBalance: 0,
+        startMonth: viewMonth,
+        payments: [
+          { id: 'demo-rent-pay-1', amount: 3000, paidOn: `${viewMonth}-10`, notes: 'Part now' },
+        ],
+      },
+      {
+        id: 'demo-unit-room-2',
+        propertyId: property.id,
+        propertyName: property.name,
+        kind: 'room' as const,
+        unitNo: '2',
+        monthlyRent: 7000,
+        dueDay: 5,
+        openingBalance: 10000,
+        startMonth: viewMonth,
+        payments: [] as { id: string; amount: number; paidOn: string; notes: string | null }[],
+      },
+    ].map((unit) => ({
+      id: unit.id,
+      propertyId: unit.propertyId,
+      propertyName: unit.propertyName,
+      kind: unit.kind,
+      unitNo: unit.unitNo,
+      monthlyRent: unit.monthlyRent,
+      dueDay: unit.dueDay,
+      openingBalance: unit.openingBalance,
+      startMonth: unit.startMonth,
+      ...statementFor({
+        openingBalance: unit.openingBalance,
+        monthlyRent: unit.monthlyRent,
+        dueDay: unit.dueDay,
+        startMonth: unit.startMonth,
+        viewMonth,
+        today,
+        payments: unit.payments,
+      }),
+    }));
+    return {
+      month: viewMonth,
+      totals: {
+        collected: units.reduce((sum, unit) => sum + unit.collected, 0),
+        remaining: units.reduce((sum, unit) => sum + unit.remaining, 0),
+        monthRent: units.reduce((sum, unit) => sum + unit.monthRent, 0),
+        broughtForward: units.reduce((sum, unit) => sum + Math.max(0, unit.broughtForward), 0),
+      },
+      properties: [property],
+      units,
+    };
   }
 }
 
