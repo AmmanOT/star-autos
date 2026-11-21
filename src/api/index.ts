@@ -147,7 +147,6 @@ export const reportsApi = {
 export const rentalsApi = {
   board: (month: string) => apiRequest<RentBoard>(`/rentals/board${queryString({ month })}`),
   addProperty: (name: string) => apiRequest<{ id: string; name: string }>('/rentals/properties', { method: 'POST', body: { name } }),
-  removeProperty: (id: string) => apiRequest<{ ok: boolean }>(`/rentals/properties/${id}`, { method: 'DELETE' }),
   addUnit: (body: {
     propertyId: string;
     kind: 'shop' | 'room';
@@ -165,7 +164,6 @@ export const rentalsApi = {
     openingBalance: number;
     startMonth: string;
   }) => apiRequest(`/rentals/units/${id}`, { method: 'PATCH', body }),
-  removeUnit: (id: string) => apiRequest<{ ok: boolean }>(`/rentals/units/${id}`, { method: 'DELETE' }),
   addPayment: (body: { unitId: string; amount: number; paidOn: string; notes?: string }) =>
     apiRequest('/rentals/payments', { method: 'POST', body }),
   removePayment: (id: string) => apiRequest<{ ok: boolean }>(`/rentals/payments/${id}`, { method: 'DELETE' }),

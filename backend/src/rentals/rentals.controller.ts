@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { RequireAllPermissions, RequirePermissions } from '../common/decorators/permissions.decorator';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Permission, UserRole } from '../common/enums';
 import { CreatePropertyDto, CreateRentPaymentDto, CreateUnitDto, UpdatePropertyDto, UpdateUnitDto } from './dto/rental.dto';
@@ -20,37 +20,27 @@ export class RentalsController {
   }
 
   @Post('properties')
+  @Roles(UserRole.ADMIN)
   createProperty(@Body() dto: CreatePropertyDto) {
     return this.rentals.createProperty(dto);
   }
 
   @Patch('properties/:id')
-  @RequireAllPermissions(Permission.RENT, Permission.EDIT)
+  @Roles(UserRole.ADMIN)
   updateProperty(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdatePropertyDto) {
     return this.rentals.updateProperty(id, dto);
   }
 
-  @Delete('properties/:id')
-  @RequireAllPermissions(Permission.RENT, Permission.DELETE)
-  removeProperty(@Param('id', ParseUUIDPipe) id: string) {
-    return this.rentals.removeProperty(id);
-  }
-
   @Post('units')
+  @Roles(UserRole.ADMIN)
   createUnit(@Body() dto: CreateUnitDto) {
     return this.rentals.createUnit(dto);
   }
 
   @Patch('units/:id')
-  @RequireAllPermissions(Permission.RENT, Permission.EDIT)
+  @Roles(UserRole.ADMIN)
   updateUnit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUnitDto) {
     return this.rentals.updateUnit(id, dto);
-  }
-
-  @Delete('units/:id')
-  @RequireAllPermissions(Permission.RENT, Permission.DELETE)
-  removeUnit(@Param('id', ParseUUIDPipe) id: string) {
-    return this.rentals.removeUnit(id);
   }
 
   @Get('board')
@@ -64,7 +54,7 @@ export class RentalsController {
   }
 
   @Delete('payments/:id')
-  @RequireAllPermissions(Permission.RENT, Permission.DELETE)
+  @Roles(UserRole.ADMIN)
   removePayment(@Param('id', ParseUUIDPipe) id: string) {
     return this.rentals.removePayment(id);
   }

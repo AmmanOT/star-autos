@@ -284,6 +284,8 @@ export const translations = {
     extraPaid: 'Extra paid',
     dueNow: 'Due',
     editUnit: 'Edit',
+    viewPayments: 'Payments',
+    noPaymentsYet: 'No payments this month.',
   },
   ur: {
     appName: 'مدینہ ٹریڈرز',
@@ -568,6 +570,8 @@ export const translations = {
     extraPaid: 'زیادہ ادا',
     dueNow: 'واجب',
     editUnit: 'ترمیم',
+    viewPayments: 'ادائیگیاں',
+    noPaymentsYet: 'اس مہینے کوئی ادائیگی نہیں۔',
   },
 } as const;
 
