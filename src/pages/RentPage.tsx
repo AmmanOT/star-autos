@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Receipt, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Printer, Receipt, Trash2 } from 'lucide-react';
 import { ApiError, rentalsApi } from '../api';
+import { RentReceipt } from '../components/rent/RentReceipt';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -11,8 +12,19 @@ import { usePrivacy } from '../contexts/PrivacyContext';
 import { useToast } from '../contexts/ToastContext';
 import type { RentBoard, RentUnitRow } from '../types';
 import { formatDateShort, formatPKR, todayPkDateKey } from '../utils/format';
+import { printThermalReceipt } from '../utils/printReceipt';
 
 type Dialog = { type: 'property' } | { type: 'unit'; unit?: RentUnitRow } | { type: 'pay'; unit: RentUnitRow };
+
+interface RentSlip {
+  propertyName: string;
+  unitKind: string;
+  unitNo: string;
+  paidOn: string;
+  amount: number;
+  remaining: number;
+  notes: string | null;
+}
 
 function currentMonth() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -49,8 +61,9 @@ const emptyUnit = (propertyId: string, month: string) => ({
 
 export function RentPage() {
   const { t, lang } = useLanguage();
-  const { isAdmin, isDemo, hasPermission } = useAuth();
+  const { user, isAdmin, isDemo, hasPermission } = useAuth();
   const { hideFinancials } = usePrivacy();
+  const showStats = user?.role !== 'employee' && !hideFinancials;
   const toast = useToast();
   const [month, setMonth] = useState(currentMonth);
   const [board, setBoard] = useState<RentBoard | null>(null);
@@ -64,8 +77,9 @@ export function RentPage() {
   const [payDate, setPayDate] = useState(todayPkDateKey());
   const [payNote, setPayNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [slip, setSlip] = useState<RentSlip | null>(null);
 
-  const money = (value: number) => (hideFinancials ? '••••' : formatPKR(value));
+  const money = (value: number) => formatPKR(value);
   const canPay = !isDemo && (isAdmin || hasPermission('rent'));
   const canManage = isAdmin;
 
@@ -118,6 +132,20 @@ export function RentPage() {
         : emptyUnit(fallbackProperty, month),
     );
     setDialog({ type: 'unit', unit });
+  };
+
+  const openSlip = (unit: RentUnitRow, paymentId: string) => {
+    const payment = unit.payments.find((row) => row.id === paymentId);
+    if (!payment) return;
+    setSlip({
+      propertyName: unit.propertyName,
+      unitKind: unit.kind === 'shop' ? t('rentShop') : t('rentRoom'),
+      unitNo: unit.unitNo,
+      paidOn: payment.paidOn,
+      amount: payment.amount,
+      remaining: Math.max(0, unit.remaining),
+      notes: payment.notes,
+    });
   };
 
   const openPay = (unit: RentUnitRow) => {
@@ -175,15 +203,20 @@ export function RentPage() {
     if (!amount || amount <= 0 || !payDate) return;
     setSaving(true);
     try {
-      await rentalsApi.addPayment({
+      const created = await rentalsApi.addPayment({
         unitId: dialog.unit.id,
         amount,
         paidOn: payDate,
         notes: payNote.trim() || undefined,
       });
+      const payMonth = payDate.slice(0, 7);
+      const next = await rentalsApi.board(payMonth);
+      if (payMonth === month) setBoard(next);
+      else await load();
+      const unit = next.units.find((row) => row.id === dialog.unit.id);
       setDialog(null);
       toast.success(t('takePayment'));
-      await load();
+      if (unit) openSlip(unit, created.id);
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Could not save');
     } finally {
@@ -238,20 +271,22 @@ export function RentPage() {
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
-          <p className="text-sm text-emerald-800 dark:text-emerald-200">{t('collected')}</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-950 dark:text-emerald-50">{money(totals.collected)}</p>
+      {showStats && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+            <p className="text-sm text-emerald-800 dark:text-emerald-200">{t('collected')}</p>
+            <p className="mt-1 text-2xl font-bold text-emerald-950 dark:text-emerald-50">{money(totals.collected)}</p>
+          </div>
+          <div className="rounded-2xl border border-amber-200/80 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
+            <p className="text-sm text-amber-800 dark:text-amber-200">{t('stillLeft')}</p>
+            <p className="mt-1 text-2xl font-bold text-amber-950 dark:text-amber-50">{money(totals.remaining)}</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <p className="text-sm text-[var(--color-text-muted)]">{t('thisMonthRent')}</p>
+            <p className="mt-1 text-2xl font-bold">{money(totals.monthRent)}</p>
+          </div>
         </div>
-        <div className="rounded-2xl border border-amber-200/80 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
-          <p className="text-sm text-amber-800 dark:text-amber-200">{t('stillLeft')}</p>
-          <p className="mt-1 text-2xl font-bold text-amber-950 dark:text-amber-50">{money(totals.remaining)}</p>
-        </div>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <p className="text-sm text-[var(--color-text-muted)]">{t('thisMonthRent')}</p>
-          <p className="mt-1 text-2xl font-bold">{money(totals.monthRent)}</p>
-        </div>
-      </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setPropertyId('all')} className={chip(propertyId === 'all')}>
@@ -363,6 +398,8 @@ export function RentPage() {
                       {payment.notes ? ` · ${payment.notes}` : ''}
                     </p>
                   </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" icon={<Printer size={14} />} onClick={() => openSlip(historyUnit, payment.id)} />
                   {canManage && (
                     <Button
                       size="sm"
@@ -371,9 +408,30 @@ export function RentPage() {
                       onClick={() => void removePayment(payment.id, money(payment.amount))}
                     />
                   )}
+                  </div>
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!slip} onClose={() => setSlip(null)} title={t('rentReceipt')} size="sm">
+        {slip && (
+          <div className="space-y-4">
+            <RentReceipt
+              propertyName={slip.propertyName}
+              unitKind={slip.unitKind}
+              unitNo={slip.unitNo}
+              paidOn={slip.paidOn}
+              amount={slip.amount}
+              remaining={slip.remaining}
+              notes={slip.notes}
+            />
+            <div className="flex justify-end gap-2 no-print">
+              <Button variant="secondary" onClick={() => setSlip(null)}>{t('cancel')}</Button>
+              <Button icon={<Printer size={16} />} onClick={() => printThermalReceipt()}>{t('printPayment')}</Button>
+            </div>
           </div>
         )}
       </Modal>

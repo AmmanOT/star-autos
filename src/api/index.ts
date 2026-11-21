@@ -165,7 +165,7 @@ export const rentalsApi = {
     startMonth: string;
   }) => apiRequest(`/rentals/units/${id}`, { method: 'PATCH', body }),
   addPayment: (body: { unitId: string; amount: number; paidOn: string; notes?: string }) =>
-    apiRequest('/rentals/payments', { method: 'POST', body }),
+    apiRequest<{ id: string; amount: number; paidOn: string; notes: string | null }>('/rentals/payments', { method: 'POST', body }),
   removePayment: (id: string) => apiRequest<{ ok: boolean }>(`/rentals/payments/${id}`, { method: 'DELETE' }),
 };
 
