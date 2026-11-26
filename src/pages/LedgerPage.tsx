@@ -168,12 +168,18 @@ export function LedgerPage() {
     const itemBrand = (productId: string, saved?: string) =>
       saved || state.products.find((product) => product.id === productId)?.brand || '—';
 
-    const invoicesHtml = bills
-      .map((bill) => {
-        const itemRows = (bill.items || [])
-          .map(
-            (item, i) => `
+    const grandSubtotal = bills.reduce((sum, bill) => sum + Number(bill.subtotal), 0);
+    const grandDiscount = bills.reduce((sum, bill) => sum + Number(bill.discount), 0);
+    const grandTotal = bills.reduce((sum, bill) => sum + Number(bill.total), 0);
+    const grandPaid = bills.reduce((sum, bill) => sum + Number(bill.paidAmount), 0);
+    const grandDue = grandTotal - grandPaid;
+    const itemRows = bills
+      .flatMap((bill) =>
+        (bill.items || []).map(
+          (item, i) => `
             <tr>
+              <td>${escapeHtml(bill.billNumber)}</td>
+              <td>${escapeHtml(formatDateShort(bill.createdAt))}</td>
               <td>${i + 1}</td>
               <td>${escapeHtml(item.productName)}</td>
               <td>${escapeHtml(itemBrand(item.productId, item.brand))}</td>
@@ -181,35 +187,51 @@ export function LedgerPage() {
               <td class="num">${escapeHtml(formatPKR(item.unitPrice))}</td>
               <td class="num">${escapeHtml(formatPKR(item.total))}</td>
             </tr>`,
-          )
-          .join('');
-        return `
-          <article class="invoice">
-            <div class="invoice-head">
-              <span>${escapeHtml(t('billNumber'))} ${escapeHtml(bill.billNumber)}</span>
-              <span>${escapeHtml(formatDateShort(bill.createdAt))}</span>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th style="width:7%">#</th>
-                  <th>${escapeHtml(t('items'))}</th>
-                  <th>${escapeHtml(t('brand'))}</th>
-                  <th class="num">${escapeHtml(t('quantity'))}</th>
-                  <th class="num">${escapeHtml(t('rate'))}</th>
-                  <th class="num">${escapeHtml(t('total'))}</th>
-                </tr>
-              </thead>
-              <tbody>${itemRows}</tbody>
-            </table>
-            <div class="invoice-total">
-              <span>${escapeHtml(t('total'))}</span>
-              <span>${escapeHtml(formatPKR(bill.total))}</span>
-            </div>
-          </article>
-        `;
-      })
+        ),
+      )
       .join('');
+    const invoicesHtml =
+      bills.length === 0
+        ? ''
+        : `
+      <table>
+        <thead>
+          <tr>
+            <th>${escapeHtml(t('billNumber'))}</th>
+            <th>${escapeHtml(t('date'))}</th>
+            <th style="width:6%">#</th>
+            <th>${escapeHtml(t('items'))}</th>
+            <th>${escapeHtml(t('brand'))}</th>
+            <th class="num">${escapeHtml(t('quantity'))}</th>
+            <th class="num">${escapeHtml(t('rate'))}</th>
+            <th class="num">${escapeHtml(t('total'))}</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+      <div class="invoice-total">
+        <span>${escapeHtml(t('subtotal'))}</span>
+        <span>${escapeHtml(formatPKR(grandSubtotal))}</span>
+      </div>
+      ${
+        grandDiscount > 0
+          ? `<div class="invoice-total"><span>${escapeHtml(t('discount'))}</span><span>-${escapeHtml(formatPKR(grandDiscount))}</span></div>`
+          : ''
+      }
+      <div class="invoice-total">
+        <span>${escapeHtml(t('total'))}</span>
+        <span>${escapeHtml(formatPKR(grandTotal))}</span>
+      </div>
+      <div class="invoice-total">
+        <span>${escapeHtml(t('paid'))}</span>
+        <span>${escapeHtml(formatPKR(grandPaid))}</span>
+      </div>
+      ${
+        grandDue > 0
+          ? `<div class="invoice-total"><span>${escapeHtml(t('due'))}</span><span>${escapeHtml(formatPKR(grandDue))}</span></div>`
+          : ''
+      }
+    `;
 
     const paymentsHtml =
       payments.length === 0

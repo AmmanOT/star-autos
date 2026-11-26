@@ -120,14 +120,27 @@ export function BulkPrintBillsButton({
 
       {printQueue && printQueue.length > 0 && (
         <div id="bulk-print-root" className="fixed left-[-9999px] top-0" aria-hidden>
-          {printQueue.map((bill, i) => (
-            <ThermalReceipt
-              key={bill.id}
-              bill={bill}
-              continuation={i > 0}
-              showClosing={i === printQueue.length - 1}
-            />
-          ))}
+          {printQueue.map((bill, i) => {
+            const last = i === printQueue.length - 1;
+            const combined = last
+              ? {
+                  subtotal: printQueue.reduce((sum, row) => sum + Number(row.subtotal), 0),
+                  discount: printQueue.reduce((sum, row) => sum + Number(row.discount), 0),
+                  total: printQueue.reduce((sum, row) => sum + Number(row.total), 0),
+                  paidAmount: printQueue.reduce((sum, row) => sum + Number(row.paidAmount), 0),
+                }
+              : undefined;
+            return (
+              <ThermalReceipt
+                key={bill.id}
+                bill={bill}
+                continuation={i > 0}
+                showClosing={last}
+                showTotals={last}
+                combined={combined}
+              />
+            );
+          })}
         </div>
       )}
     </>

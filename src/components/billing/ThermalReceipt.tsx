@@ -10,6 +10,10 @@ interface ThermalReceiptProps {
   continuation?: boolean;
   /** Thank-you, software footer, and cutter feed. Only the last bulk bill should keep these. */
   showClosing?: boolean;
+  /** Per-bill totals stay off until the last slip of a bulk print. */
+  showTotals?: boolean;
+  /** Combined figures for every bill in a bulk print. Shown once, on the last slip. */
+  combined?: { subtotal: number; discount: number; total: number; paidAmount: number };
 }
 
 /**
@@ -20,13 +24,16 @@ export function ThermalReceipt({
   bill,
   continuation = false,
   showClosing = true,
+  showTotals = true,
+  combined,
 }: ThermalReceiptProps) {
   const { t } = useLanguage();
   const { isDemo } = useAuth();
   const { state } = useStore();
   const shopAddress = isDemo ? t('demoShopAddress') : t('shopAddress');
   const shopPhone = isDemo ? t('demoShopPhone') : t('shopPhone');
-  const due = bill.total - bill.paidAmount;
+  const figures = combined ?? bill;
+  const due = figures.total - figures.paidAmount;
   const customer = bill.customerId
     ? state.customers.find((c) => c.id === bill.customerId)
     : undefined;
@@ -79,16 +86,18 @@ export function ThermalReceipt({
       <div className="receipt-rule mx-2" />
 
       <table className="receipt-grid">
-        <thead>
-          <tr>
-            <th className="col-sr">Sr</th>
-            <th className="col-item">{t('items')}</th>
-            <th className="col-brand">{t('brand')}</th>
-            <th className="col-qty">{t('quantity')}</th>
-            <th className="col-rate">{t('rate')}</th>
-            <th className="col-amt">{t('total')}</th>
-          </tr>
-        </thead>
+        {!continuation && (
+          <thead>
+            <tr>
+              <th className="col-sr">Sr</th>
+              <th className="col-item">{t('items')}</th>
+              <th className="col-brand">{t('brand')}</th>
+              <th className="col-qty">{t('quantity')}</th>
+              <th className="col-rate">{t('rate')}</th>
+              <th className="col-amt">{t('total')}</th>
+            </tr>
+          </thead>
+        )}
         <tbody>
           {bill.items.map((item, i) => (
             <tr key={i}>
@@ -103,40 +112,44 @@ export function ThermalReceipt({
         </tbody>
       </table>
 
-      <div className="receipt-rule mx-2" />
+      {showTotals && (
+        <>
+          <div className="receipt-rule mx-2" />
 
-      <div className="receipt-totals">
-        <div className="receipt-row">
-          <span className="receipt-label">{t('subtotal')}</span>
-          <span className="receipt-value">{formatPKR(bill.subtotal)}</span>
-        </div>
-        {bill.discount > 0 && (
-          <div className="receipt-row">
-            <span className="receipt-label">{t('discount')}</span>
-            <span className="receipt-value">-{formatPKR(bill.discount)}</span>
+          <div className="receipt-totals">
+            <div className="receipt-row">
+              <span className="receipt-label">{t('subtotal')}</span>
+              <span className="receipt-value">{formatPKR(figures.subtotal)}</span>
+            </div>
+            {figures.discount > 0 && (
+              <div className="receipt-row">
+                <span className="receipt-label">{t('discount')}</span>
+                <span className="receipt-value">-{formatPKR(figures.discount)}</span>
+              </div>
+            )}
+            <div className="receipt-row receipt-total-row">
+              <span className="receipt-label font-bold text-[12px] uppercase">{t('total')}</span>
+              <span className="receipt-value font-bold text-[13px]">{formatPKR(figures.total)}</span>
+            </div>
+            <div className="receipt-row">
+              <span className="receipt-label">{t('paid')}</span>
+              <span className="receipt-value font-bold">{formatPKR(figures.paidAmount)}</span>
+            </div>
+            {due > 0 && (
+              <div className="receipt-row font-bold text-[12px]">
+                <span className="receipt-label">{t('due')}</span>
+                <span className="receipt-value">{formatPKR(due)}</span>
+              </div>
+            )}
+            {ledgerBalance != null && (
+              <div className="receipt-row receipt-total-row">
+                <span className="receipt-label font-bold text-[12px] uppercase">{t('totalBalance')}</span>
+                <span className="receipt-value font-bold text-[13px]">{formatPKR(ledgerBalance)}</span>
+              </div>
+            )}
           </div>
-        )}
-        <div className="receipt-row receipt-total-row">
-          <span className="receipt-label font-bold text-[12px] uppercase">{t('total')}</span>
-          <span className="receipt-value font-bold text-[13px]">{formatPKR(bill.total)}</span>
-        </div>
-        <div className="receipt-row">
-          <span className="receipt-label">{t('paid')}</span>
-          <span className="receipt-value font-bold">{formatPKR(bill.paidAmount)}</span>
-        </div>
-        {due > 0 && (
-          <div className="receipt-row font-bold text-[12px]">
-            <span className="receipt-label">{t('due')}</span>
-            <span className="receipt-value">{formatPKR(due)}</span>
-          </div>
-        )}
-        {ledgerBalance != null && (
-          <div className="receipt-row receipt-total-row">
-            <span className="receipt-label font-bold text-[12px] uppercase">{t('totalBalance')}</span>
-            <span className="receipt-value font-bold text-[13px]">{formatPKR(ledgerBalance)}</span>
-          </div>
-        )}
-      </div>
+        </>
+      )}
 
       {showClosing && (
         <>
